@@ -1,0 +1,2749 @@
+{
+  "name": "RetellAI - Appointment Booking - Get Free Slots",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "34669956-dc28-4c79-b0f2-24eae0fac5f3",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        160,
+        680
+      ],
+      "id": "12914a27-84f1-4a26-97a3-00010dd45fab",
+      "name": "Webhook",
+      "webhookId": "34669956-dc28-4c79-b0f2-24eae0fac5f3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process each input item\nreturn items.map(item => {\n  // Retrieve the phone number from the input and convert it to a string\n  let phoneStr = item.json.body.call.to_number.toString();\n  \n  // Remove the tech prefix \"1315\" if present\n  if (phoneStr.startsWith(\"1315\")) {\n    phoneStr = phoneStr.slice(4);\n  }\n  \n  // Format the phone number into E164 format\n  let formattedPhone;\n  if (phoneStr.length === 10) {\n    // If exactly 10 digits, assume it's a US/Canada number without the country code and prepend \"+1\"\n    formattedPhone = \"+1\" + phoneStr;\n  } else if (phoneStr.length === 11 && phoneStr.startsWith(\"1\")) {\n    // If 11 digits and starts with \"1\", it already includes the country code; just add the plus sign\n    formattedPhone = \"+\" + phoneStr;\n  } else {\n    // For all other cases, simply prepend the plus sign\n    formattedPhone = \"+\" + phoneStr;\n  }\n  \n  // Save the formatted phone number in the output object\n  item.json.formattedPhone = formattedPhone;\n  return item;\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -360
+      ],
+      "id": "7dcae6aa-ff6e-4f1f-be60-81fb65aa7133",
+      "name": "Format Phone Number"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/contacts/search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "highLevelOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"locationId\": \"njFpHXxikNqRhonfpnP6\",\n  \"page\": 1,\n  \"pageLimit\": 1,\n  \"filters\": [\n    {\n       \"field\": \"phone\",\n       \"operator\": \"eq\",\n       \"value\": \"{{ $('Set Initial Variables').item.json.customer_phone_number }}\"\n    }\n  ]\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        680
+      ],
+      "id": "df80ba8a-fb5a-4265-8cca-001ad7a11ae4",
+      "name": "Search Contact",
+      "credentials": {
+        "highLevelOAuth2Api": {
+          "id": "i57UmcFtK8ZvubV8",
+          "name": "HLPT - Main Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://services.leadconnectorhq.com/calendars/{{ $('Set Initial Variables').item.json.calendar_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "highLevelOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-04-15"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        820,
+        680
+      ],
+      "id": "884732b7-0ac9-494f-8004-389b79ba3f6e",
+      "name": "Get Calendar",
+      "credentials": {
+        "highLevelOAuth2Api": {
+          "id": "i57UmcFtK8ZvubV8",
+          "name": "HLPT - Main Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "07e054a5-d80e-46a2-acbf-6416ce8eaf19",
+              "leftValue": "={{ $('Set Initial Variables').item.json.customer_phone_number }}",
+              "rightValue": "/^\\+1\\d{10}$/",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1260,
+        680
+      ],
+      "id": "05bd4e9e-69ee-4757-9ec7-2b730baeb5d6",
+      "name": "Determine if US/Canada"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ca648c28-ecb4-41f5-9b25-e2c336379f08",
+              "name": "calendar_id",
+              "value": "FxfI9JWU22mfdJ1sU3Hp",
+              "type": "string"
+            },
+            {
+              "id": "c268bbc9-55fc-40f3-bca0-6fdb4d592550",
+              "name": "location_id",
+              "value": "njFpHXxikNqRhonfpnP6",
+              "type": "string"
+            },
+            {
+              "id": "45a86476-4def-43c8-a8d1-5fe86b2f7aca",
+              "name": "customer_phone_number",
+              "value": "={{ $json.body.call.to_number }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        380,
+        680
+      ],
+      "id": "9c4db243-931f-455a-980f-9d8f6368b5c6",
+      "name": "Set Initial Variables"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3a5375c3-6128-444b-9a85-dbfd0ab2a11e",
+              "name": "customer_area_code",
+              "value": "={{ $('Set Initial Variables').item.json.customer_phone_number.substring(2,5) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        940
+      ],
+      "id": "dbf121ad-4edf-4eb3-acac-a0e391b13e5a",
+      "name": "Set Area Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  // Retrieve the IANA timezone from the input payload\n  const ianaTimezone = item.json[\"timezone\"];\n  const now = new Date();\n  // Create a formatter that includes the timezone offset (using 'shortOffset')\n  const formatter = new Intl.DateTimeFormat('en-US', {\n    timeZone: ianaTimezone,\n    timeZoneName: 'shortOffset'\n  });\n  \n  // Format the current date to get the offset string (e.g., \"GMT-4\")\n  const parts = formatter.formatToParts(now);\n  const tzNamePart = parts.find(part => part.type === 'timeZoneName');\n  \n  let currentOffsetHours = null;\n  let formattedOffset = '';\n  \n  if (tzNamePart && tzNamePart.value.startsWith(\"GMT\")) {\n    // Parse the offset string using a regular expression\n    const match = tzNamePart.value.match(/GMT([+-]\\d{1,2})(?::?(\\d{2}))?/);\n    if (match) {\n      const hours = parseInt(match[1], 10);\n      const minutes = match[2] ? parseInt(match[2], 10) : 0;\n      currentOffsetHours = hours + minutes / 60;\n      \n      // Format the offset in +HHMM or -HHMM format\n      const sign = hours >= 0 ? '+' : '-';\n      const absHours = Math.abs(hours);\n      formattedOffset = `${sign}${absHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;\n    }\n  }\n  \n  // To determine the \"standard\" (non-DST) offset, check a date typically outside DST (e.g., January 1)\n  const january = new Date(now.getFullYear(), 0, 1);\n  const formatterJan = new Intl.DateTimeFormat('en-US', {\n    timeZone: ianaTimezone,\n    timeZoneName: 'shortOffset'\n  });\n  const partsJan = formatterJan.formatToParts(january);\n  const tzNamePartJan = partsJan.find(part => part.type === 'timeZoneName');\n  \n  let standardOffsetHours = null;\n  if (tzNamePartJan && tzNamePartJan.value.startsWith(\"GMT\")) {\n    const matchJan = tzNamePartJan.value.match(/GMT([+-]\\d{1,2})(?::?(\\d{2}))?/);\n    if (matchJan) {\n      const hours = parseInt(matchJan[1], 10);\n      const minutes = matchJan[2] ? parseInt(matchJan[2], 10) : 0;\n      standardOffsetHours = hours + minutes / 60;\n    }\n  }\n  \n  // If the current offset differs from the standard offset, DST is active.\n  const isDST = (currentOffsetHours !== null && standardOffsetHours !== null)\n    ? (currentOffsetHours !== standardOffsetHours)\n    : false;\n    \n  // Return the original payload along with the computed DST flag and both numeric and formatted UTC offset\n  return {\n    json: {\n      ...item.json,\n      isDST: isDST,\n      utcOffset: currentOffsetHours,\n      utcOffsetFormatted: formattedOffset\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        940
+      ],
+      "id": "6e92ddbc-bdb6-4b3c-8b0c-42ff16145f89",
+      "name": "Determine DST Active or Not"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2be5b409-a392-4aed-b902-fa4d3425c1a8",
+              "name": "requested_time_unix",
+              "value": "={{ $now }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        820,
+        940
+      ],
+      "id": "5b347c9f-f390-45a6-88d8-f77754ebb8d9",
+      "name": "Perform Date Transformation"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dbc0b457-c44d-466d-b2b1-91c008400cf5",
+              "name": "slotDurationMinutes",
+              "value": "={{ $json.calendar.slotDurationUnit === \"hours\" ? $json.calendar.slotDuration * 60 : $json.calendar.slotDuration }}",
+              "type": "number"
+            },
+            {
+              "id": "f1626720-fdc6-47e0-af75-f8de4f3665fa",
+              "name": "slotIntervalMinutes",
+              "value": "={{ $json.calendar.slotIntervalUnit === \"hours\" ? $json.calendar.slotInterval * 60 : $json.calendar.slotInterval }}",
+              "type": "string"
+            },
+            {
+              "id": "7dcbccc3-7d6f-4d15-ab71-b7b55d3bc3d7",
+              "name": "slotBufferMinutes",
+              "value": "={{ $json.calendar.slotBufferUnit === \"hours\" ? $json.calendar.slotBuffer * 60 : $json.calendar.slotBuffer }}",
+              "type": "string"
+            },
+            {
+              "id": "ee44d8a9-b203-47ca-a103-08dfb306857a",
+              "name": "allowBookingAfterISOMinutes",
+              "value": "={{ \n  $json.calendar.allowBookingAfterUnit === \"hours\" \n    ? $json.calendar.allowBookingAfter * 60 \n    : $json.calendar.allowBookingAfterUnit === \"days\" \n      ? $json.calendar.allowBookingAfter * 1440 \n      : $json.calendar.allowBookingAfterUnit === \"weeks\" \n        ? $json.calendar.allowBookingAfter * 10080 \n        : $json.calendar.allowBookingAfterUnit === \"months\" \n          ? $json.calendar.allowBookingAfter * 43200 \n          : $json.calendar.allowBookingAfter \n}}",
+              "type": "string"
+            },
+            {
+              "id": "bfb2534d-450d-41c2-89db-a3d5f8bdf760",
+              "name": "allowBookingForISOMinutes",
+              "value": "={{ \n  $json.calendar.allowBookingForUnit === \"hours\" \n    ? $json.calendar.allowBookingFor * 60 \n    : $json.calendar.allowBookingForUnit === \"days\" \n      ? $json.calendar.allowBookingFor * 1440 \n      : $json.calendar.allowBookingForUnit === \"weeks\" \n        ? $json.calendar.allowBookingFor * 10080 \n        : $json.calendar.allowBookingForUnit === \"months\" \n          ? $json.calendar.allowBookingFor * 43200 \n          : $json.calendar.allowBookingFor\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1040,
+        680
+      ],
+      "id": "cab5e954-88b6-4122-885b-7486209f6556",
+      "name": "Set Calendar Variables"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/calendars/events/appointments",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "highLevelOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-04-15"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"calendarId\": \"{{ $('Set Initial Variables').item.json.calendar_id }}\",\n  \"locationId\": \"{{ $('Set Initial Variables').item.json.location_id }}\",\n  \"contactId\": \"{{ $('Search Contact').item.json.contacts[0].id }}\",\n  \"startTime\": \"{{ $json.requested_time_unix.toDateTime().toString() }}\",\n  \"endTime\": \"{{ ($json.requested_time_unix.toDateTime().plus($('Set Calendar Variables').item.json.slotDurationMinutes,'minutes')).toString() }}\",\n  \"title\": \"{{ $('Search Contact').item.json.contacts[0].firstNameLowerCase.toSentenceCase() }} {{ $('Search Contact').item.json.contacts[0].lastNameLowerCase.toSentenceCase() }} - AI Booked Appointment\",\n  \"ignoreFreeSlotValidation\": false\n}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        -100
+      ],
+      "id": "f3989954-f4ba-4056-8c06-8fc3bf4c5b05",
+      "name": "Try and Book Appointment",
+      "alwaysOutputData": true,
+      "credentials": {
+        "highLevelOAuth2Api": {
+          "id": "i57UmcFtK8ZvubV8",
+          "name": "HLPT - Main Account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.error.cause.status.toString() }}",
+                    "rightValue": "=400",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Not Available"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7aad60a9-8fd5-4c53-8592-e6ddf9ca2ce2",
+                    "leftValue": "={{ $json.statusCode }}",
+                    "rightValue": 201,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Booked"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        620,
+        -100
+      ],
+      "id": "8eb1d5a5-5815-4f3e-b2d7-5eba3122c2ea",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "url": "=https://services.leadconnectorhq.com/calendars/{{ $('Set Initial Variables').item.json.calendar_id }}/free-slots",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "highLevelOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "timezone",
+              "value": "={{ $('Lookup IANA Timezone').item.json[\"timezone\"] }}"
+            },
+            {
+              "name": "startDate",
+              "value": "={{ ($now.plus($('Set Calendar Variables').item.json.allowBookingAfterISOMinutes,'minutes')).toMillis() }}"
+            },
+            {
+              "name": "endDate",
+              "value": "={{ ($now.plus($('Set Calendar Variables').item.json.allowBookingForISOMinutes,'minutes')).toMillis() }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Version",
+              "value": "2021-04-15"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        940
+      ],
+      "id": "47d06c07-4c56-4c63-bbde-2db8d89b72a0",
+      "name": "Get Free Slots",
+      "alwaysOutputData": false,
+      "credentials": {
+        "highLevelOAuth2Api": {
+          "id": "i57UmcFtK8ZvubV8",
+          "name": "HLPT - Main Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Helper Functions --- //\n\n// Pad a number with a leading zero if needed.\nfunction pad(n) {\n  return n < 10 ? '0' + n : n;\n}\n\n// Returns local date parts for a given Date in a specified timezone.\nfunction getLocalParts(date, tz) {\n  const dtf = new Intl.DateTimeFormat('en-US', {\n    timeZone: tz,\n    year: 'numeric',\n    month: 'numeric',\n    day: 'numeric',\n    hour: 'numeric',\n    minute: 'numeric',\n    second: 'numeric',\n    hour12: false\n  });\n  const parts = dtf.formatToParts(date);\n  const result = {};\n  parts.forEach(({ type, value }) => {\n    if (type === 'year') result.year = parseInt(value, 10);\n    if (type === 'month') result.month = parseInt(value, 10);\n    if (type === 'day') result.day = parseInt(value, 10);\n    if (type === 'hour') result.hour = parseInt(value, 10);\n    if (type === 'minute') result.minute = parseInt(value, 10);\n    if (type === 'second') result.second = parseInt(value, 10);\n  });\n  \n  // Get weekday as a number using the full date\n  const weekdayFormatter = new Intl.DateTimeFormat('en-US', { \n    timeZone: tz, \n    weekday: 'long' \n  });\n  const weekdayStr = weekdayFormatter.format(date);\n  \n  // Map using full weekday names to ensure accuracy\n  const weekdayMap = { \n    'Monday': 1, \n    'Tuesday': 2, \n    'Wednesday': 3, \n    'Thursday': 4, \n    'Friday': 5, \n    'Saturday': 6, \n    'Sunday': 7 \n  };\n  \n  result.weekday = weekdayMap[weekdayStr] || 0;\n  result.weekdayName = weekdayStr; // Store the actual weekday name for debugging\n  return result;\n}\n\n// Computes the ISO week number from local year, month, day (month is 1-indexed).\nfunction getISOWeek(year, month, day) {\n  const date = new Date(Date.UTC(year, month - 1, day));\n  let dayNum = date.getUTCDay();\n  if (dayNum === 0) dayNum = 7;\n  date.setUTCDate(date.getUTCDate() + 4 - dayNum);\n  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));\n  return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);\n}\n\n// Returns the timezone abbreviation (e.g., \"EDT\") using Intl.\nfunction getTimezoneAbbr(date, tz) {\n  const dtf = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'short' });\n  const parts = dtf.formatToParts(date);\n  const abbrPart = parts.find(part => part.type === 'timeZoneName');\n  return abbrPart ? abbrPart.value : '';\n}\n\n// Returns an offset string (e.g., +HH:MM) using Intl.\nfunction getOffsetStr(date, tz) {\n  try {\n    const dtf = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'shortOffset' });\n    const parts = dtf.formatToParts(date);\n    const offsetPart = parts.find(part => part.type === 'timeZoneName');\n    let offset = offsetPart ? offsetPart.value : '';\n    if (offset.startsWith(\"GMT\")) offset = offset.slice(3);\n    if (offset.length === 5) offset = offset.slice(0, 3) + \":\" + offset.slice(3);\n    return offset;\n  } catch (e) {\n    return \"\";\n  }\n}\n\n// Returns the ordinal suffix for a day number.\nfunction getOrdinalSuffix(day) {\n  if (day >= 11 && day <= 13) return 'th';\n  switch (day % 10) {\n    case 1: return 'st';\n    case 2: return 'nd';\n    case 3: return 'rd';\n    default: return 'th';\n  }\n}\n\n// Formats a Date into a human‑readable string.\nfunction formatHuman(date, tz) {\n  const local = getLocalParts(date, tz);\n  const abbr = getTimezoneAbbr(date, tz);\n  const weekdayFormatter = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long' });\n  const weekday = weekdayFormatter.format(date);\n  const monthFormatter = new Intl.DateTimeFormat('en-US', { timeZone: tz, month: 'long' });\n  const month = monthFormatter.format(date);\n  const timeFormatter = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', hour12: true });\n  const timeStr = timeFormatter.format(date);\n  const suffix = getOrdinalSuffix(local.day);\n  return `${timeStr} ${abbr} on ${weekday} the ${local.day}${suffix} of ${month}, ${local.year}`;\n}\n\n// Formats the time as HH:mm:ss.\nfunction formatHour(date, tz) {\n  const local = getLocalParts(date, tz);\n  return `${pad(local.hour)}:${pad(local.minute)}:${pad(local.second)}`;\n}\n\n// Formats the date as YYYY-MM-DD.\nfunction formatDate(date, tz) {\n  const local = getLocalParts(date, tz);\n  return `${local.year}-${pad(local.month)}-${pad(local.day)}`;\n}\n\n// --- Main Function --- //\n\n/**\n * Finds three closest available appointment slots based on the user's requested time.\n * @param {number} userRequestedBookingUnix - User's requested time (in seconds).\n * @param {Array} availableSlots - Array of ISO date strings.\n * @param {string} timezoneStr - IANA timezone string (e.g., \"America/New_York\").\n * @returns {object} - An object with details of up to three closest slots.\n */\nfunction findClosestSlots(userRequestedBookingUnix, availableSlots, timezoneStr) {\n  const userDate = new Date(userRequestedBookingUnix * 1000);\n  const now = new Date(); // Current time to calculate true proximity\n  \n  // Convert each available slot into an object with useful data\n  let slots = availableSlots.map(slotStr => {\n    const dateObj = new Date(slotStr);\n    const seconds = dateObj.getTime() / 1000;\n    const local = getLocalParts(dateObj, timezoneStr);\n    const dateStr = `${local.year}-${pad(local.month)}-${pad(local.day)}`;\n    \n    // Calculate proximity to now in milliseconds\n    const proximityToNow = Math.abs(dateObj - now);\n    \n    // Calculate proximity to requested time in milliseconds\n    const proximityToRequested = Math.abs(dateObj - userDate);\n    \n    return { \n      dateObj, \n      seconds,\n      local,\n      dateStr,\n      proximityToNow,\n      proximityToRequested\n    };\n  });\n  \n  // Filter out slots in the past\n  const futureSlots = slots.filter(slot => slot.dateObj >= now);\n  \n  // Sort all slots by proximity to now (closest first)\n  const slotsByProximity = [...futureSlots].sort((a, b) => a.proximityToNow - b.proximityToNow);\n  \n  // Get three closest slots\n  const closestSlots = [];\n  \n  // First slot: Closest to now\n  if (slotsByProximity.length > 0) {\n    closestSlots.push(slotsByProximity[0]);\n  }\n  \n  // Second slot: Next closest on a different date\n  if (slotsByProximity.length > 1) {\n    const firstDate = closestSlots[0].dateStr;\n    const differentDateSlots = slotsByProximity.filter(slot => slot.dateStr !== firstDate);\n    \n    if (differentDateSlots.length > 0) {\n      closestSlots.push(differentDateSlots[0]);\n    } else {\n      // If no different date available, take the next closest on same date\n      closestSlots.push(slotsByProximity[1]);\n    }\n  }\n  \n  // Third slot: Next closest on a date different from first two\n  if (slotsByProximity.length > 2) {\n    const usedDates = closestSlots.map(slot => slot.dateStr);\n    const newDateSlots = slotsByProximity.filter(slot => !usedDates.includes(slot.dateStr));\n    \n    if (newDateSlots.length > 0) {\n      closestSlots.push(newDateSlots[0]);\n    } else {\n      // If all dates used, take the next closest unused slot\n      const usedSlotIds = closestSlots.map(slot => slot.seconds);\n      const remainingSlots = slotsByProximity.filter(slot => !usedSlotIds.includes(slot.seconds));\n      \n      if (remainingSlots.length > 0) {\n        closestSlots.push(remainingSlots[0]);\n      }\n    }\n  }\n  \n  // --- Format the Result --- //\n  const result = {};\n  const slotNames = ['first', 'second', 'third'];\n  closestSlots.forEach((slot, i) => {\n    const dt = slot.dateObj;\n    result[`${slotNames[i]}_closest_time_unix`] = slot.seconds;\n    result[`${slotNames[i]}_closest_time_human`] = formatHuman(dt, timezoneStr);\n    result[`${slotNames[i]}_closest_time_hour`] = formatHour(dt, timezoneStr);\n    result[`${slotNames[i]}_closest_time_date`] = formatDate(dt, timezoneStr);\n    result[`${slotNames[i]}_closest_time_timezone`] = getTimezoneAbbr(dt, timezoneStr);\n    result[`${slotNames[i]}_closest_time_offset`] = getOffsetStr(dt, timezoneStr);\n  });\n  \n  return result;\n}\n\n// --- Retrieve Variables from n8n --- //\n\n// The \"Slot Availability\" comes from the current node's JSON.\n// Here the JSON groups slots by date; we flatten them.\nconst slotAvailability = items[0].json;\nlet availableSlots = [];\nfor (const key in slotAvailability) {\n  if (key === \"traceId\") continue;\n  if (slotAvailability[key] && Array.isArray(slotAvailability[key].slots)) {\n    availableSlots = availableSlots.concat(slotAvailability[key].slots);\n  }\n}\nif (availableSlots.length === 0) {\n  return [{ json: { error: \"Invalid slot availability format.\" } }];\n}\n\n// \"Requested Time\" is provided (as UNIX seconds) from another node.\nconst userRequestedBookingUnix = parseFloat($('Perform Date Transformation').item.json.requested_time_unix);\n\n// \"Timezone\" is provided from another node.\nconst timezoneStr = $('Determine DST Active or Not').item.json[\"timezone\"];\n\n// --- Execute the Function --- //\nconst result = findClosestSlots(userRequestedBookingUnix, availableSlots, timezoneStr);\n\n// Return the result in an n8n-compatible format.\nreturn [{ json: result }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        940
+      ],
+      "id": "08478aeb-94c7-4436-957e-dc6aa6716b65",
+      "name": "Determine Slots"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n      \"available_slots\": \"{{ $json.results[0].result }}\"\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1780,
+        940
+      ],
+      "id": "0a890867-753c-4195-aff1-0e922bff2c0b",
+      "name": "Respond with Free Slots"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"results\": [\n    {\n      \"toolCallId\": \"{{ $('Webhook').item.json.body.message.toolCalls[0].id }}\",\n      \"result\": \"Booked\"\n    }\n  ]\n} \n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        840,
+        -200
+      ],
+      "id": "5d90cd03-f635-4e82-925a-89582b00b55d",
+      "name": "Respond with Booked"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"results\": [\n    {\n      \"toolCallId\": \"{{ $('Webhook').item.json.body.message.toolCalls[0].id }}\",\n      \"result\": \"Error\"\n    }\n  ]\n} \n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        840,
+        0
+      ],
+      "id": "51d9b8ab-9618-401e-82e3-6a3d553cdf97",
+      "name": "Respond with Error"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ensure chrono-node is available:\nconst chrono = require('chrono-node');\n\n// ----- Helper functions -----\n\n// Pad a number with leading zero.\nfunction pad(n) {\n  return n < 10 ? '0' + n : '' + n;\n}\n\n// Format a Date as YYYY-MM-DD.\nfunction formatDate(date) {\n  return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());\n}\n\n// Format a Date as HH:mm (24-hour) in the specified timezone\nfunction formatTime(date, timeZone) {\n  if (!timeZone) {\n    // Use local time if no timezone specified\n    return pad(date.getHours()) + ':' + pad(date.getMinutes());\n  }\n  \n  // Format time in the specified timezone\n  const options = { \n    hour: '2-digit', \n    minute: '2-digit',\n    hour12: false,\n    timeZone: timeZone \n  };\n  \n  const formatter = new Intl.DateTimeFormat('en-US', options);\n  const formattedTime = formatter.format(date);\n  \n  // Handle possible format variations in different browsers\n  // Some may return \"15:30\", others may return \"15:30:00\" or \"15:30 PM\"\n  const timeParts = formattedTime.match(/(\\d{1,2})[:.:](\\d{2})/);\n  if (timeParts) {\n    return pad(parseInt(timeParts[1], 10)) + ':' + timeParts[2];\n  }\n  \n  // Fallback to original implementation\n  return pad(date.getHours()) + ':' + pad(date.getMinutes());\n}\n\n// Get UTC offset string (+/-HH:mm) for a date in a given IANA timezone.\nfunction getUTCOffset(date, timeZone) {\n  // Use Intl.DateTimeFormat with timeZoneName option.\n  const options = { timeZone, timeZoneName: 'shortOffset' };\n  const dtf = new Intl.DateTimeFormat('en-US', options);\n  const parts = dtf.formatToParts(date);\n  const offsetPart = parts.find(part => part.type === 'timeZoneName');\n  let offset = offsetPart ? offsetPart.value : '';\n  if (offset.startsWith(\"GMT\")) {\n    offset = offset.slice(3);\n  }\n  // Format offset as +HH:mm or -HH:mm.\n  if (offset.length === 5) {\n    offset = offset.slice(0, 3) + \":\" + offset.slice(3);\n  }\n  return offset;\n}\n\n// Returns a new Date based on input 'date' but with its date portion replaced by that of 'newDate'.\nfunction combineDateAndTime(newDate, timeDate) {\n  return new Date(\n    newDate.getFullYear(),\n    newDate.getMonth(),\n    newDate.getDate(),\n    timeDate.getHours(),\n    timeDate.getMinutes(),\n    timeDate.getSeconds(),\n    timeDate.getMilliseconds()\n  );\n}\n\n// Gets the next occurrence of a specific weekday\nfunction getNextDayOfWeek(date, targetDayOfWeek) {\n  const currentDayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday\n  \n  // Calculate days to add\n  let daysToAdd = targetDayOfWeek - currentDayOfWeek;\n  \n  // If the target day is earlier in the week or the same day, move to next week\n  if (daysToAdd <= 0) {\n    daysToAdd += 7;\n  }\n  \n  // Create a new date with the calculated days added\n  const result = new Date(date);\n  result.setDate(date.getDate() + daysToAdd);\n  return result;\n}\n\n// Gets the day of week number from a string (e.g., \"Thursday\" -> 4)\nfunction getDayOfWeekNumber(dayName) {\n  const daysOfWeek = {\n    'sunday': 0,\n    'monday': 1,\n    'tuesday': 2,\n    'wednesday': 3,\n    'thursday': 4,\n    'friday': 5,\n    'saturday': 6\n  };\n  return daysOfWeek[dayName.toLowerCase()];\n}\n\n// Check if a date matches a specific weekday\nfunction isCorrectWeekday(date, targetWeekdayName) {\n  const weekdayNum = date.getDay();\n  const targetWeekdayNum = getDayOfWeekNumber(targetWeekdayName);\n  return weekdayNum === targetWeekdayNum;\n}\n\n// Helper function to convert timezone abbreviation to IANA timezone name\nfunction getIANAFromAbbreviation(abbr) {\n  const tzMap = {\n    'EST': 'America/New_York',\n    'EDT': 'America/New_York',\n    'CST': 'America/Chicago',\n    'CDT': 'America/Chicago',\n    'MST': 'America/Denver',\n    'MDT': 'America/Denver',\n    'PST': 'America/Los_Angeles',\n    'PDT': 'America/Los_Angeles'\n  };\n  return tzMap[abbr.toUpperCase()] || 'UTC';\n}\n\n// ----- Main Processing ----- //\n\n// Get today's date. We'll treat \"now\" as the current date/time.\nconst now = new Date();\n\n// Retrieve the input natural language string.\n// Assume it's provided in the current node's JSON under key \"input\".\n// (You can adjust this to your actual variable.)\nconst inputString = $('Webhook').item.json.body.message.toolCalls[0].function.arguments.bookingDateAndTime;\n\n// Retrieve the IANA timezone from a previous node.\n// Fix: Use the correct parameter name from your data source\nconst timeZone = $('Determine DST Active or Not').item.json[\"Standard Time Zone\"];\n\n// Check for timezone in the input string\nconst timezoneMatch = inputString.match(/\\b(EST|EDT|CST|CDT|MST|MDT|PST|PDT|[A-Z]{3})\\b/i);\nconst inputTimezone = timezoneMatch ? getIANAFromAbbreviation(timezoneMatch[1]) : timeZone || 'UTC';\n\n// Pre-process the input string for special cases before parsing\nlet processedInput = inputString;\nlet specialTimeframe = null;\n\n// Check for \"today\", \"tomorrow\", \"next week\" and similar phrases\nconst todayMatch = inputString.match(/\\b(today)\\b/i);\nconst tomorrowMatch = inputString.match(/\\b(tomorrow)\\b/i);\nconst nextWeekMatch = inputString.match(/\\b(next\\s+week)\\b/i);\nconst nextDayMatch = inputString.match(/\\b(next\\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday))\\b/i);\n\nif (todayMatch) {\n  specialTimeframe = 'today';\n} else if (tomorrowMatch) {\n  specialTimeframe = 'tomorrow';\n} else if (nextWeekMatch) {\n  specialTimeframe = 'nextWeek';\n} else if (nextDayMatch) {\n  specialTimeframe = 'nextSpecificDay';\n  processedInput = nextDayMatch[2]; // Extract the day name\n}\n\n// Use chrono-node to parse the input.\n// Use the option forwardDate:true to force future dates.\nconst results = chrono.parse(inputString, now, { forwardDate: true });\n\nif (results.length === 0) {\n  // If parsing failed, return an error.\n  return [{ json: { error: \"Unable to parse input: \" + inputString } }];\n}\n\n// Check if we have parsing results\nlet dt;\nlet start;\n\nif (results.length > 0) {\n  // Work with the first parsed result.\n  const parsedResult = results[0];\n  dt = parsedResult.start.date(); // dt is a JavaScript Date\n  \n  // Determine what components were \"certain\" per chrono.\n  start = parsedResult.start;\n} else {\n  // Handle special cases if chrono failed to parse\n  dt = new Date(now);\n  \n  // Create a dummy start object with certainty info\n  start = {\n    isCertain: function(unit) {\n      if (unit === 'hour' && inputString.match(/\\d+\\s*(am|pm)/i)) {\n        return true;\n      }\n      return false;\n    }\n  };\n  \n  // Extract time if present\n  const timeMatch = inputString.match(/(\\d+)(?::(\\d+))?\\s*(am|pm)?/i);\n  if (timeMatch) {\n    let hours = parseInt(timeMatch[1], 10);\n    const minutes = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;\n    const ampm = timeMatch[3] ? timeMatch[3].toLowerCase() : null;\n    \n    if (ampm === 'pm' && hours < 12) hours += 12;\n    if (ampm === 'am' && hours === 12) hours = 0;\n    \n    dt.setHours(hours, minutes, 0, 0);\n  }\n}\n\n// Handle special timeframes\nif (specialTimeframe) {\n  switch (specialTimeframe) {\n    case 'today':\n      // Just use today's date with the parsed time\n      break;\n    case 'tomorrow':\n      // Use tomorrow's date with the parsed time\n      dt.setDate(now.getDate() + 1);\n      break;\n    case 'nextWeek':\n      // Move to the same day next week\n      dt.setDate(now.getDate() + 7);\n      break;\n    case 'nextSpecificDay':\n      // Find next occurrence of the specific day\n      const dayName = processedInput;\n      const targetDayNum = getDayOfWeekNumber(dayName);\n      \n      // First, advance to next week\n      const nextWeekDate = new Date(now);\n      nextWeekDate.setDate(now.getDate() + 7);\n      \n      // Then find the correct day of that week\n      while (nextWeekDate.getDay() !== targetDayNum) {\n        nextWeekDate.setDate(nextWeekDate.getDate() + 1);\n      }\n      \n      // Preserve time from the parsed date\n      dt = combineDateAndTime(nextWeekDate, dt);\n      break;\n  }\n}\n\n// Extract weekday if present in the input\nconst weekdayMatch = inputString.match(/\\b(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\\b/i);\nlet targetWeekday = null;\nif (weekdayMatch) {\n  targetWeekday = weekdayMatch[1].toLowerCase();\n}\n\n// If we have a parsed date and a specified weekday\nif (targetWeekday && start.isCertain('year') && start.isCertain('month') && start.isCertain('day')) {\n  // Check if the parsed date matches the specified weekday\n  if (!isCorrectWeekday(dt, targetWeekday)) {\n    // If not, adjust to the correct weekday\n    const targetWeekdayNum = getDayOfWeekNumber(targetWeekday);\n    \n    // Find the date for the specified weekday in the same month\n    // First, go to the first day of the month\n    const firstOfMonth = new Date(dt.getFullYear(), dt.getMonth(), 1);\n    \n    // Find the first occurrence of the target weekday in the month\n    let targetDate = firstOfMonth;\n    while (targetDate.getDay() !== targetWeekdayNum) {\n      targetDate.setDate(targetDate.getDate() + 1);\n    }\n    \n    // Now find the correct occurrence that matches the day number or is closest to it\n    let closestDate = targetDate;\n    let minDiff = Math.abs(dt.getDate() - targetDate.getDate());\n    \n    // Check all occurrences of this weekday in the month\n    while (targetDate.getMonth() === dt.getMonth()) {\n      const diff = Math.abs(dt.getDate() - targetDate.getDate());\n      if (diff < minDiff) {\n        minDiff = diff;\n        closestDate = new Date(targetDate);\n      }\n      // Move to next occurrence of this weekday\n      targetDate.setDate(targetDate.getDate() + 7);\n    }\n    \n    // Use the time from the original parsed date\n    dt = combineDateAndTime(closestDate, dt);\n  }\n} \n// Special handling for day-of-week inputs without fully specified date\nelse if (targetWeekday && (!start.isCertain('month') || !start.isCertain('day'))) {\n  const targetWeekdayNum = getDayOfWeekNumber(targetWeekday);\n  // Get the next occurrence of the target weekday\n  const nextWeekdayDate = getNextDayOfWeek(now, targetWeekdayNum);\n  // Preserve the time from the parsed date\n  dt = combineDateAndTime(nextWeekdayDate, dt);\n} \n// If only time was provided (no day reference at all)\nelse if (!start.isCertain('day')) {\n  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);\n  dt = combineDateAndTime(tomorrow, dt);\n}\n\n// If the hour is not certain (i.e. only a date was provided), default to 12:00.\nif (!start.isCertain('hour')) {\n  dt.setHours(12, 0, 0, 0);\n}\n\n// Final safety check: ensure the datetime is in the future\nif (dt <= now) {\n  // If still in the past, move to tomorrow\n  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);\n  dt = combineDateAndTime(tomorrow, dt);\n}\n\n// Build the output JSON.\n// Format the date as YYYY-MM-DD and time as HH:mm.\nconst output = {\n  preferred_date: formatDate(dt),\n  time: formatTime(dt, inputTimezone)  // Use the detected timezone\n};\n\n// Add debugging information\nconst debugInfo = {\n  input: inputString,\n  parsed_weekday: dt.toLocaleString('en-US', { weekday: 'long' }),\n  target_weekday: targetWeekday,\n  today: now.toISOString(),\n  detected_timezone: inputTimezone,\n  was_certain_weekday: start.isCertain('weekday'),\n  was_certain_day: start.isCertain('day'),\n  was_certain_month: start.isCertain('month'),\n  was_certain_year: start.isCertain('year'),\n  was_certain_hour: start.isCertain('hour')\n};\n\n// Return exactly the JSON payload.\nreturn [{ json: { ...output, debug: debugInfo } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -100
+      ],
+      "id": "a370415a-d6ec-4146-a6c0-4b65df6bd990",
+      "name": "Identify Date and Time from Input"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Static mapping object: area code to IANA timezone.\nconst areaCodeMapping = {\n\"217\": \"America/Chicago\",\n\"208\": \"America/Boise\",\n\"213\": \"America/Los_Angeles\",\n\"220\": \"America/New_York\",\n\"201\": \"America/New_York\",\n\"212\": \"America/New_York\",\n\"226\": \"America/Toronto\",\n\"236\": \"America/Vancouver\",\n\"240\": \"America/New_York\",\n\"203\": \"America/New_York\",\n\"313\": \"America/Detroit\",\n\"214\": \"America/Chicago\",\n\"223\": \"America/New_York\",\n\"204\": \"America/Winnipeg\",\n\"202\": \"America/New_York\",\n\"319\": \"America/Chicago\",\n\"329\": \"America/New_York\",\n\"445\": \"America/New_York\",\n\"523\": \"America/New_York\",\n\"434\": \"America/New_York\",\n\"303\": \"America/Denver\",\n\"310\": \"America/Los_Angeles\",\n\"614\": \"America/New_York\",\n\"253\": \"America/Los_Angeles\",\n\"533\": \"America/New_York\",\n\"307\": \"America/Denver\",\n\"431\": \"America/Winnipeg\",\n\"548\": \"America/Toronto\",\n\"626\": \"America/Los_Angeles\",\n\"562\": \"America/Los_Angeles\",\n\"856\": \"America/New_York\",\n\"641\": \"America/Chicago\",\n\"700\": \"America/New_York\",\n\"613\": \"America/Toronto\",\n\"645\": \"America/New_York\",\n\"557\": \"America/Chicago\",\n\"525\": \"America/New_York\",\n\"681\": \"America/New_York\",\n\"646\": \"America/New_York\",\n\"308\": \"America/Chicago\",\n\"770\": \"America/New_York\",\n\"428\": \"America/Moncton\",\n\"281\": \"America/Chicago\",\n\"753\": \"America/Toronto\",\n\"382\": \"America/Toronto\",\n\"458\": \"America/Los_Angeles\",\n\"541\": \"America/Los_Angeles\",\n\"521\": \"America/New_York\",\n\"620\": \"America/Chicago\",\n\"367\": \"America/Toronto\",\n\"437\": \"America/Toronto\",\n\"585\": \"America/New_York\",\n\"630\": \"America/Chicago\",\n\"659\": \"America/Chicago\",\n\"430\": \"America/Chicago\",\n\"401\": \"America/New_York\",\n\"515\": \"America/Chicago\",\n\"574\": \"America/Indiana/Indianapolis\",\n\"760\": \"America/Los_Angeles\",\n\"835\": \"America/New_York\",\n\"855\": \"America/New_York\",\n\"680\": \"America/New_York\",\n\"577\": \"America/New_York\",\n\"807\": \"America/Thunder_Bay\",\n\"566\": \"America/New_York\",\n\"858\": \"America/Los_Angeles\",\n\"353\": \"America/Chicago\",\n\"826\": \"America/New_York\",\n\"413\": \"America/New_York\",\n\"651\": \"America/Chicago\",\n\"781\": \"America/New_York\",\n\"608\": \"America/Chicago\",\n\"309\": \"America/Chicago\",\n\"539\": \"America/Chicago\",\n\"724\": \"America/New_York\",\n\"405\": \"America/Chicago\",\n\"624\": \"America/New_York\",\n\"863\": \"America/New_York\",\n\"864\": \"America/New_York\",\n\"802\": \"America/New_York\",\n\"806\": \"America/Chicago\",\n\"805\": \"America/Los_Angeles\",\n\"839\": \"America/New_York\",\n\"684\": \"Pacific/Pago_Pago\",\n\"861\": \"America/Chicago\",\n\"580\": \"America/Chicago\",\n\"743\": \"America/New_York\",\n\"306\": \"America/Regina\",\n\"251\": \"America/Chicago\",\n\"573\": \"America/Chicago\",\n\"848\": \"America/New_York\",\n\"828\": \"America/New_York\",\n\"604\": \"America/Vancouver\",\n\"603\": \"America/New_York\",\n\"775\": \"America/Los_Angeles\",\n\"857\": \"America/New_York\",\n\"717\": \"America/New_York\",\n\"206\": \"America/Los_Angeles\",\n\"860\": \"America/New_York\",\n\"551\": \"America/New_York\",\n\"629\": \"America/Chicago\",\n\"404\": \"America/New_York\",\n\"283\": \"America/New_York\",\n\"721\": \"America/Lower_Princes\",\n\"683\": \"America/Toronto\",\n\"706\": \"America/New_York\",\n\"767\": \"America/Dominica\",\n\"825\": \"America/Edmonton\",\n\"417\": \"America/Chicago\",\n\"725\": \"America/Los_Angeles\",\n\"207\": \"America/New_York\",\n\"380\": \"America/New_York\",\n\"803\": \"America/New_York\",\n\"658\": \"America/Jamaica\",\n\"758\": \"America/St_Lucia\",\n\"540\": \"America/New_York\",\n\"710\": \"America/New_York\",\n\"705\": \"America/Toronto\",\n\"689\": \"America/New_York\",\n\"859\": \"America/New_York\",\n\"813\": \"America/New_York\",\n\"817\": \"America/Chicago\",\n\"633\": \"America/Toronto\",\n\"416\": \"America/Toronto\",\n\"738\": \"America/Los_Angeles\",\n\"757\": \"America/New_York\",\n\"472\": \"America/New_York\",\n\"715\": \"America/Chicago\",\n\"484\": \"America/New_York\",\n\"865\": \"America/New_York\",\n\"215\": \"America/New_York\",\n\"475\": \"America/New_York\",\n\"409\": \"America/Chicago\",\n\"403\": \"America/Edmonton\",\n\"262\": \"America/Chicago\",\n\"867\": \"America/Yellowknife\",\n\"205\": \"America/Chicago\",\n\"522\": \"America/New_York\",\n\"317\": \"America/Indiana/Indianapolis\",\n\"209\": \"America/Los_Angeles\",\n\"636\": \"America/Chicago\",\n\"219\": \"America/Chicago\",\n\"276\": \"America/New_York\",\n\"850\": \"America/Chicago\",\n\"318\": \"America/Chicago\",\n\"510\": \"America/Los_Angeles\",\n\"227\": \"America/New_York\",\n\"229\": \"America/New_York\",\n\"216\": \"America/New_York\",\n\"716\": \"America/New_York\",\n\"782\": \"America/Halifax\",\n\"218\": \"America/Chicago\",\n\"263\": \"America/Toronto\",\n\"473\": \"America/Grenada\",\n\"360\": \"America/Los_Angeles\",\n\"667\": \"America/New_York\",\n\"224\": \"America/Chicago\",\n\"520\": \"America/Phoenix\",\n\"315\": \"America/New_York\",\n\"246\": \"America/Barbados\",\n\"419\": \"America/New_York\",\n\"650\": \"America/Los_Angeles\",\n\"866\": \"America/New_York\",\n\"804\": \"America/New_York\",\n\"623\": \"America/Phoenix\",\n\"225\": \"America/Chicago\",\n\"707\": \"America/Los_Angeles\",\n\"260\": \"America/Indiana/Indianapolis\",\n\"526\": \"America/New_York\",\n\"808\": \"Pacific/Honolulu\",\n\"714\": \"America/Los_Angeles\",\n\"365\": \"America/Toronto\",\n\"810\": \"America/Detroit\",\n\"330\": \"America/New_York\",\n\"256\": \"America/Chicago\",\n\"323\": \"America/Los_Angeles\",\n\"228\": \"America/Chicago\",\n\"441\": \"Atlantic/Bermuda\",\n\"815\": \"America/Chicago\",\n\"210\": \"America/Chicago\",\n\"407\": \"America/New_York\",\n\"340\": \"America/St_Thomas\",\n\"563\": \"America/Chicago\",\n\"254\": \"America/Chicago\",\n\"754\": \"America/New_York\",\n\"709\": \"America/St_Johns\",\n\"829\": \"America/Santo_Domingo\",\n\"289\": \"America/Toronto\",\n\"840\": \"America/Los_Angeles\",\n\"600\": \"America/Toronto\",\n\"601\": \"America/Chicago\",\n\"571\": \"America/New_York\",\n\"248\": \"America/Detroit\",\n\"559\": \"America/Los_Angeles\",\n\"235\": \"America/Chicago\",\n\"363\": \"America/New_York\",\n\"704\": \"America/New_York\",\n\"854\": \"America/New_York\",\n\"326\": \"America/New_York\",\n\"252\": \"America/New_York\",\n\"368\": \"America/Edmonton\",\n\"640\": \"America/New_York\",\n\"609\": \"America/New_York\",\n\"305\": \"America/New_York\",\n\"507\": \"America/Chicago\",\n\"269\": \"America/Detroit\",\n\"682\": \"America/Chicago\",\n\"582\": \"America/New_York\",\n\"572\": \"America/Chicago\",\n\"268\": \"America/Antigua\",\n\"331\": \"America/Chicago\",\n\"270\": \"America/Chicago\",\n\"249\": \"America/Toronto\",\n\"470\": \"America/New_York\",\n\"747\": \"America/Los_Angeles\",\n\"820\": \"America/Los_Angeles\",\n\"234\": \"America/New_York\",\n\"267\": \"America/New_York\",\n\"786\": \"America/New_York\",\n\"505\": \"America/Denver\",\n\"503\": \"America/Los_Angeles\",\n\"622\": \"America/Toronto\",\n\"631\": \"America/New_York\",\n\"469\": \"America/Chicago\",\n\"616\": \"America/Detroit\",\n\"350\": \"America/Los_Angeles\",\n\"325\": \"America/Chicago\",\n\"588\": \"America/New_York\",\n\"500\": \"America/New_York\",\n\"504\": \"America/Chicago\",\n\"812\": \"America/Indiana/Indianapolis\",\n\"327\": \"America/Chicago\",\n\"657\": \"America/Los_Angeles\",\n\"587\": \"America/Edmonton\",\n\"816\": \"America/Chicago\",\n\"436\": \"America/New_York\",\n\"364\": \"America/Chicago\",\n\"361\": \"America/Chicago\",\n\"814\": \"America/New_York\",\n\"386\": \"America/New_York\",\n\"479\": \"America/Chicago\",\n\"274\": \"America/Chicago\",\n\"845\": \"America/New_York\",\n\"314\": \"America/Chicago\",\n\"304\": \"America/New_York\",\n\"809\": \"America/Santo_Domingo\",\n\"447\": \"America/Chicago\",\n\"801\": \"America/Denver\",\n\"284\": \"America/Tortola\",\n\"605\": \"America/Chicago\",\n\"264\": \"America/Anguilla\",\n\"321\": \"America/New_York\",\n\"612\": \"America/Chicago\",\n\"718\": \"America/New_York\",\n\"669\": \"America/Los_Angeles\",\n\"279\": \"America/Los_Angeles\",\n\"516\": \"America/New_York\",\n\"785\": \"America/Chicago\",\n\"607\": \"America/New_York\",\n\"671\": \"Pacific/Guam\",\n\"844\": \"America/New_York\",\n\"703\": \"America/New_York\",\n\"316\": \"America/Chicago\",\n\"463\": \"America/Indiana/Indianapolis\",\n\"618\": \"America/Chicago\",\n\"369\": \"America/Los_Angeles\",\n\"513\": \"America/New_York\",\n\"334\": \"America/Chicago\",\n\"672\": \"America/Vancouver\",\n\"478\": \"America/New_York\",\n\"544\": \"America/New_York\",\n\"731\": \"America/Chicago\",\n\"302\": \"America/New_York\",\n\"529\": \"America/New_York\",\n\"649\": \"America/Grand_Turk\",\n\"567\": \"America/New_York\",\n\"712\": \"America/Chicago\",\n\"464\": \"America/Chicago\",\n\"831\": \"America/Los_Angeles\",\n\"862\": \"America/New_York\",\n\"345\": \"America/Cayman\",\n\"771\": \"America/New_York\",\n\"524\": \"America/New_York\",\n\"586\": \"America/Detroit\",\n\"343\": \"America/Toronto\",\n\"564\": \"America/Los_Angeles\",\n\"530\": \"America/Los_Angeles\",\n\"575\": \"America/Denver\",\n\"408\": \"America/Los_Angeles\",\n\"610\": \"America/New_York\",\n\"425\": \"America/Los_Angeles\",\n\"779\": \"America/Chicago\",\n\"352\": \"America/New_York\",\n\"732\": \"America/New_York\",\n\"762\": \"America/New_York\",\n\"678\": \"America/New_York\",\n\"784\": \"America/St_Vincent\",\n\"347\": \"America/New_York\",\n\"728\": \"America/New_York\",\n\"727\": \"America/New_York\",\n\"581\": \"America/Toronto\",\n\"734\": \"America/Detroit\",\n\"772\": \"America/New_York\",\n\"708\": \"America/Chicago\",\n\"763\": \"America/Chicago\",\n\"231\": \"America/Detroit\",\n\"774\": \"America/New_York\",\n\"661\": \"America/Los_Angeles\",\n\"519\": \"America/Toronto\",\n\"412\": \"America/New_York\",\n\"719\": \"America/Denver\",\n\"512\": \"America/Chicago\",\n\"628\": \"America/Los_Angeles\",\n\"847\": \"America/Chicago\",\n\"528\": \"America/New_York\",\n\"324\": \"America/New_York\",\n\"514\": \"America/Toronto\",\n\"702\": \"America/Los_Angeles\",\n\"351\": \"America/New_York\",\n\"730\": \"America/Chicago\",\n\"337\": \"America/Chicago\",\n\"849\": \"America/Santo_Domingo\",\n\"402\": \"America/Chicago\",\n\"415\": \"America/Los_Angeles\",\n\"450\": \"America/Toronto\",\n\"508\": \"America/New_York\",\n\"242\": \"America/Nassau\",\n\"480\": \"America/Phoenix\",\n\"517\": \"America/Detroit\",\n\"272\": \"America/New_York\",\n\"336\": \"America/New_York\",\n\"442\": \"America/Los_Angeles\",\n\"418\": \"America/Toronto\",\n\"830\": \"America/Chicago\",\n\"737\": \"America/Chicago\",\n\"720\": \"America/Denver\",\n\"312\": \"America/Chicago\",\n\"239\": \"America/New_York\",\n\"423\": \"America/New_York\",\n\"639\": \"America/Regina\",\n\"435\": \"America/Denver\",\n\"410\": \"America/New_York\",\n\"787\": \"America/Puerto_Rico\",\n\"509\": \"America/Los_Angeles\",\n\"518\": \"America/New_York\",\n\"656\": \"America/New_York\",\n\"765\": \"America/Indiana/Indianapolis\",\n\"385\": \"America/Denver\",\n\"617\": \"America/New_York\",\n\"561\": \"America/New_York\",\n\"301\": \"America/New_York\",\n\"414\": \"America/Chicago\",\n\"615\": \"America/Chicago\",\n\"821\": \"America/New_York\",\n\"502\": \"America/Kentucky/Louisville\",\n\"701\": \"America/Chicago\",\n\"713\": \"America/Chicago\",\n\"332\": \"America/New_York\",\n\"606\": \"America/New_York\",\n\"819\": \"America/Toronto\",\n\"833\": \"America/New_York\",\n\"742\": \"America/Toronto\",\n\"250\": \"America/Vancouver\",\n\"506\": \"America/Moncton\",\n\"778\": \"America/Vancouver\",\n\"769\": \"America/Chicago\",\n\"832\": \"America/Chicago\",\n\"346\": \"America/Chicago\",\n\"354\": \"America/Toronto\",\n\"570\": \"America/New_York\",\n\"584\": \"America/Winnipeg\",\n\"662\": \"America/Chicago\",\n\"602\": \"America/Phoenix\",\n\"818\": \"America/Los_Angeles\",\n\"320\": \"America/Chicago\",\n\"647\": \"America/Toronto\",\n\"800\": \"America/New_York\",\n\"780\": \"America/Edmonton\",\n\"660\": \"America/Chicago\",\n\"579\": \"America/Toronto\",\n\"843\": \"America/New_York\",\n\"838\": \"America/New_York\",\n\"531\": \"America/Chicago\",\n\"432\": \"America/Chicago\",\n\"443\": \"America/New_York\",\n\"619\": \"America/Los_Angeles\",\n\"406\": \"America/Denver\",\n\"726\": \"America/Chicago\",\n\"773\": \"America/Chicago\",\n\"448\": \"America/Chicago\",\n\"339\": \"America/New_York\",\n\"468\": \"America/Toronto\",\n\"534\": \"America/Chicago\",\n\"686\": \"America/New_York\",\n\"527\": \"America/New_York\",\n\"424\": \"America/Los_Angeles\",\n\"501\": \"America/Chicago\",\n\"740\": \"America/New_York\",\n\"664\": \"America/Montserrat\",\n\"438\": \"America/Toronto\",\n\"670\": \"Pacific/Saipan\",\n\"474\": \"America/Regina\",\n\"341\": \"America/Los_Angeles\",\n\"440\": \"America/New_York\",\n\"905\": \"America/Toronto\",\n\"906\": \"America/Detroit\",\n\"907\": \"America/Anchorage\",\n\"910\": \"America/New_York\",\n\"954\": \"America/New_York\",\n\"901\": \"America/Chicago\",\n\"888\": \"America/New_York\",\n\"903\": \"America/Chicago\",\n\"876\": \"America/Jamaica\",\n\"878\": \"America/New_York\",\n\"872\": \"America/Chicago\",\n\"873\": \"America/Toronto\",\n\"956\": \"America/Chicago\",\n\"959\": \"America/New_York\",\n\"879\": \"America/St_Johns\",\n\"877\": \"America/New_York\",\n\"902\": \"America/Halifax\",\n\"870\": \"America/Chicago\",\n\"868\": \"America/Port_of_Spain\",\n\"904\": \"America/New_York\",\n\"900\": \"America/New_York\",\n\"869\": \"America/St_Kitts\",\n\"979\": \"America/Chicago\",\n\"951\": \"America/Los_Angeles\",\n\"913\": \"America/Chicago\",\n\"920\": \"America/Chicago\",\n\"984\": \"America/New_York\",\n\"925\": \"America/Los_Angeles\",\n\"971\": \"America/Los_Angeles\",\n\"924\": \"America/Chicago\",\n\"949\": \"America/Los_Angeles\",\n\"983\": \"America/Denver\",\n\"916\": \"America/Los_Angeles\",\n\"915\": \"America/Denver\",\n\"952\": \"America/Chicago\",\n\"914\": \"America/New_York\",\n\"918\": \"America/Chicago\",\n\"931\": \"America/Chicago\",\n\"978\": \"America/New_York\",\n\"929\": \"America/New_York\",\n\"917\": \"America/New_York\",\n\"936\": \"America/Chicago\",\n\"970\": \"America/Denver\",\n\"973\": \"America/New_York\",\n\"945\": \"America/Chicago\",\n\"980\": \"America/New_York\",\n\"975\": \"America/Chicago\",\n\"930\": \"America/Indiana/Indianapolis\",\n\"989\": \"America/Detroit\",\n\"947\": \"America/Detroit\",\n\"943\": \"America/New_York\",\n\"948\": \"America/New_York\",\n\"909\": \"America/Los_Angeles\",\n\"908\": \"America/New_York\",\n\"940\": \"America/Chicago\",\n\"941\": \"America/New_York\",\n\"972\": \"America/Chicago\",\n\"928\": \"America/Phoenix\",\n\"939\": \"America/Puerto_Rico\",\n\"938\": \"America/Chicago\",\n\"934\": \"America/New_York\",\n\"937\": \"America/New_York\",\n\"912\": \"America/New_York\",\n\"985\": \"America/Chicago\",\n\"919\": \"America/New_York\",\n\"986\": \"America/Boise\",\n};\n\n// Assume the area code is provided directly in the JSON at this path.\nconst areaCode = $('Set Area Code').item.json.customer_area_code;\n\n// Lookup the timezone using the provided area code.\nconst timezone = areaCodeMapping[areaCode] || \"Unknown\";\n\n// Return a JSON payload with the area code and timezone.\nreturn [{ json: { areaCode, timezone } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        380,
+        940
+      ],
+      "id": "c51fa312-dd4c-4ca9-ab8d-383acf7cb2d7",
+      "name": "Lookup IANA Timezone"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"results\": [\n    {\n      \"toolCallId\": \"{{ $('Webhook').item.json.body.message.toolCalls[0].id }}\",\n      \"result\": \"Available Slots: {{ $json.first_closest_time_human }}, {{ $json.second_closest_time_human }}, {{ $json.third_closest_time_human }}\"\n    }\n  ]\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1560,
+        940
+      ],
+      "id": "a6f1f952-2d0e-42c0-8ded-a0f4d42c9f31",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get data from the previous node's output\nconst jsonData = items.json; \n\n// Format UTC offset correctly (convert number to string with proper format)\nlet utcOffset = jsonData.utc_offset;\nif (typeof utcOffset === 'number') {\n  const sign = utcOffset >= 0 ? '+' : '-';\n  const absOffset = Math.abs(utcOffset);\n  utcOffset = `${sign}${absOffset.toString().padStart(2, '0')}:00`;\n}\n\n// Create the date string with proper format\nconst formattedDate = `${jsonData.preferred_date}T${jsonData.time}:00${utcOffset}`;\n\n// Parse the date\nconst dateObj = new Date(formattedDate);\nreturn dateObj;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        380,
+        -360
+      ],
+      "id": "62d3a1c1-d664-4399-a346-5179c3279f7c",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"available_slots\": \"I have available Monday at 5pm Eastern Daylight Time\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        420
+      ],
+      "id": "fdda2746-f50c-4d9e-bf43-37717ddf2ff5",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "api.olliebot.ai",
+            "user-agent": "axios/1.7.7",
+            "content-length": "24785",
+            "accept": "application/json, text/plain, */*",
+            "accept-encoding": "gzip, compress, deflate, br",
+            "content-type": "application/json",
+            "via": "1.1 Caddy",
+            "x-forwarded-for": "100.20.5.228:60201",
+            "x-forwarded-host": "api.olliebot.ai",
+            "x-forwarded-proto": "https",
+            "x-real-ip": "100.20.5.228:60201",
+            "x-retell-signature": "v=1748596637578,d=5c5ac9415dd5a456ec1f220466382894f4a36f3605aee30ec9183b26918b177f"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "call": {
+              "call_id": "call_645c3f76df7e3da12fe89b2df0a",
+              "call_type": "phone_call",
+              "agent_id": "agent_1dc973641c277176a5b941595d",
+              "retell_llm_dynamic_variables": {
+                "first_name": "Mario",
+                "email": "mario@aldayuz.com"
+              },
+              "call_status": "ongoing",
+              "start_timestamp": 1748596575825,
+              "transcript": "Agent: Hi, this is Tiffany, the AI Assistant for Matt Deseeno at H-L Pro Tools. Is this Mario?\nUser: Yeah. This is Mario.\nAgent: Great! Nice to speak with you, Mario. I see you recently inquired about our support and onboarding services for HighLevel. I'm calling to see if we can get an appointment booked with our team to discuss how we can help you get the most out of the platform. Is now a good time to talk for a few minutes about that?\nUser: Sure. That's fine.\nAgent: Excellent! So, our services are really designed to save you time and help your business grow, which is, um, perfect for SaaS entrepreneurs like yourself. We find that most of our clients really appreciate how we streamline the whole HighLevel experience. Would you like to connect with one of our sales team members in a quick virtual meeting? They can walk you through the costs, benefits, and uh, how to get started with our services. We could find a time that works best for your schedule.\nUser: Sure. That's fine.\nAgent: Let me see what appointment slots are available.\n",
+              "transcript_object": [
+                {
+                  "role": "agent",
+                  "content": "Hi, this is Tiffany, the AI Assistant for Matt Deseeno at H-L Pro Tools. Is this Mario?",
+                  "words": [
+                    {
+                      "word": "Hi, ",
+                      "start": 2.554,
+                      "end": 2.763
+                    },
+                    {
+                      "word": "this ",
+                      "start": 2.763,
+                      "end": 2.949
+                    },
+                    {
+                      "word": "is ",
+                      "start": 2.949,
+                      "end": 3.077
+                    },
+                    {
+                      "word": "Tiffany, ",
+                      "start": 3.077,
+                      "end": 3.471
+                    },
+                    {
+                      "word": "the ",
+                      "start": 3.471,
+                      "end": 3.587
+                    },
+                    {
+                      "word": "AI ",
+                      "start": 3.587,
+                      "end": 3.901
+                    },
+                    {
+                      "word": "Assistant ",
+                      "start": 3.901,
+                      "end": 4.319
+                    },
+                    {
+                      "word": "for ",
+                      "start": 4.319,
+                      "end": 4.447
+                    },
+                    {
+                      "word": "Matt ",
+                      "start": 4.447,
+                      "end": 4.644
+                    },
+                    {
+                      "word": "Deseeno ",
+                      "start": 4.644,
+                      "end": 5.166
+                    },
+                    {
+                      "word": "at ",
+                      "start": 5.166,
+                      "end": 5.329
+                    },
+                    {
+                      "word": "H-L ",
+                      "start": 5.329,
+                      "end": 5.677
+                    },
+                    {
+                      "word": "Pro ",
+                      "start": 5.677,
+                      "end": 5.886
+                    },
+                    {
+                      "word": "Tools. ",
+                      "start": 5.886,
+                      "end": 6.525
+                    },
+                    {
+                      "word": "Is ",
+                      "start": 6.570708251953125,
+                      "end": 6.687708251953125
+                    },
+                    {
+                      "word": "this ",
+                      "start": 6.687708251953125,
+                      "end": 6.884708251953125
+                    },
+                    {
+                      "word": "Mario?",
+                      "start": 6.884708251953125,
+                      "end": 7.406708251953125
+                    }
+                  ],
+                  "metadata": {
+                    "response_id": 0
+                  }
+                },
+                {
+                  "role": "user",
+                  "content": "Yeah. This is Mario.",
+                  "words": [
+                    {
+                      "word": "Yeah. ",
+                      "start": 9.401,
+                      "end": 9.721
+                    },
+                    {
+                      "word": "This ",
+                      "start": 9.721,
+                      "end": 9.880999999999998
+                    },
+                    {
+                      "word": "is ",
+                      "start": 9.880999999999998,
+                      "end": 9.960999999999999
+                    },
+                    {
+                      "word": "Mario.",
+                      "start": 9.960999999999999,
+                      "end": 10.201001
+                    }
+                  ]
+                },
+                {
+                  "role": "agent",
+                  "content": "Great! Nice to speak with you, Mario. I see you recently inquired about our support and onboarding services for HighLevel. I'm calling to see if we can get an appointment booked with our team to discuss how we can help you get the most out of the platform. Is now a good time to talk for a few minutes about that?",
+                  "words": [
+                    {
+                      "word": "Great! ",
+                      "start": 12.236,
+                      "end": 12.851
+                    },
+                    {
+                      "word": "Nice ",
+                      "start": 12.8975,
+                      "end": 13.1305
+                    },
+                    {
+                      "word": "to ",
+                      "start": 13.1305,
+                      "end": 13.2235
+                    },
+                    {
+                      "word": "speak ",
+                      "start": 13.2235,
+                      "end": 13.4665
+                    },
+                    {
+                      "word": "with ",
+                      "start": 13.4665,
+                      "end": 13.6295
+                    },
+                    {
+                      "word": "you, ",
+                      "start": 13.6295,
+                      "end": 13.7685
+                    },
+                    {
+                      "word": "Mario.",
+                      "start": 13.7685,
+                      "end": 14.4765
+                    },
+                    {
+                      "word": " I ",
+                      "start": 14.522916748046875,
+                      "end": 14.627916748046875
+                    },
+                    {
+                      "word": "see ",
+                      "start": 14.627916748046875,
+                      "end": 14.789916748046876
+                    },
+                    {
+                      "word": "you ",
+                      "start": 14.789916748046876,
+                      "end": 14.929916748046875
+                    },
+                    {
+                      "word": "recently ",
+                      "start": 14.929916748046875,
+                      "end": 15.277916748046875
+                    },
+                    {
+                      "word": "inquired ",
+                      "start": 15.277916748046875,
+                      "end": 15.672916748046875
+                    },
+                    {
+                      "word": "about ",
+                      "start": 15.672916748046875,
+                      "end": 15.834916748046876
+                    },
+                    {
+                      "word": "our ",
+                      "start": 15.834916748046876,
+                      "end": 15.962916748046876
+                    },
+                    {
+                      "word": "support ",
+                      "start": 15.962916748046876,
+                      "end": 16.368916748046875
+                    },
+                    {
+                      "word": "and ",
+                      "start": 16.368916748046875,
+                      "end": 16.485916748046876
+                    },
+                    {
+                      "word": "onboarding ",
+                      "start": 16.485916748046876,
+                      "end": 16.937916748046874
+                    },
+                    {
+                      "word": "services ",
+                      "start": 16.937916748046874,
+                      "end": 17.483916748046877
+                    },
+                    {
+                      "word": "for ",
+                      "start": 17.483916748046877,
+                      "end": 17.646916748046873
+                    },
+                    {
+                      "word": "HighLevel. ",
+                      "start": 17.646916748046873,
+                      "end": 18.377916748046875
+                    },
+                    {
+                      "word": "I'm ",
+                      "start": 18.423875,
+                      "end": 18.667875
+                    },
+                    {
+                      "word": "calling ",
+                      "start": 18.667875,
+                      "end": 19.027875
+                    },
+                    {
+                      "word": "to ",
+                      "start": 19.027875,
+                      "end": 19.120875
+                    },
+                    {
+                      "word": "see ",
+                      "start": 19.120875,
+                      "end": 19.283875
+                    },
+                    {
+                      "word": "if ",
+                      "start": 19.283875,
+                      "end": 19.399875
+                    },
+                    {
+                      "word": "we ",
+                      "start": 19.399875,
+                      "end": 19.503875
+                    },
+                    {
+                      "word": "can ",
+                      "start": 19.503875,
+                      "end": 19.666875
+                    },
+                    {
+                      "word": "get ",
+                      "start": 19.666875,
+                      "end": 19.828875
+                    },
+                    {
+                      "word": "an ",
+                      "start": 19.828875,
+                      "end": 19.921875
+                    },
+                    {
+                      "word": "appointment ",
+                      "start": 19.921875,
+                      "end": 20.362875
+                    },
+                    {
+                      "word": "booked ",
+                      "start": 20.362875,
+                      "end": 20.595875
+                    },
+                    {
+                      "word": "with ",
+                      "start": 20.595875,
+                      "end": 20.745875
+                    },
+                    {
+                      "word": "our ",
+                      "start": 20.745875,
+                      "end": 20.896875
+                    },
+                    {
+                      "word": "team ",
+                      "start": 20.896875,
+                      "end": 21.221875
+                    },
+                    {
+                      "word": "to ",
+                      "start": 21.221875,
+                      "end": 21.396875
+                    },
+                    {
+                      "word": "discuss ",
+                      "start": 21.396875,
+                      "end": 21.802875
+                    },
+                    {
+                      "word": "how ",
+                      "start": 21.802875,
+                      "end": 21.953875
+                    },
+                    {
+                      "word": "we ",
+                      "start": 21.953875,
+                      "end": 22.069875
+                    },
+                    {
+                      "word": "can ",
+                      "start": 22.069875,
+                      "end": 22.232875
+                    },
+                    {
+                      "word": "help ",
+                      "start": 22.232875,
+                      "end": 22.429875
+                    },
+                    {
+                      "word": "you ",
+                      "start": 22.429875,
+                      "end": 22.557875
+                    },
+                    {
+                      "word": "get ",
+                      "start": 22.557875,
+                      "end": 22.731875
+                    },
+                    {
+                      "word": "the ",
+                      "start": 22.731875,
+                      "end": 22.847875
+                    },
+                    {
+                      "word": "most ",
+                      "start": 22.847875,
+                      "end": 23.137875
+                    },
+                    {
+                      "word": "out ",
+                      "start": 23.137875,
+                      "end": 23.276875
+                    },
+                    {
+                      "word": "of ",
+                      "start": 23.276875,
+                      "end": 23.381875
+                    },
+                    {
+                      "word": "the ",
+                      "start": 23.381875,
+                      "end": 23.485875
+                    },
+                    {
+                      "word": "platform. ",
+                      "start": 23.485875,
+                      "end": 24.275875
+                    },
+                    {
+                      "word": "Is ",
+                      "start": 24.32175,
+                      "end": 24.57775
+                    },
+                    {
+                      "word": "now ",
+                      "start": 24.57775,
+                      "end": 24.72875
+                    },
+                    {
+                      "word": "a ",
+                      "start": 24.72875,
+                      "end": 24.80975
+                    },
+                    {
+                      "word": "good ",
+                      "start": 24.80975,
+                      "end": 24.94875
+                    },
+                    {
+                      "word": "time ",
+                      "start": 24.94875,
+                      "end": 25.12375
+                    },
+                    {
+                      "word": "to ",
+                      "start": 25.12375,
+                      "end": 25.21575
+                    },
+                    {
+                      "word": "talk ",
+                      "start": 25.21575,
+                      "end": 25.45975
+                    },
+                    {
+                      "word": "for ",
+                      "start": 25.45975,
+                      "end": 25.58775
+                    },
+                    {
+                      "word": "a ",
+                      "start": 25.58775,
+                      "end": 25.66875
+                    },
+                    {
+                      "word": "few ",
+                      "start": 25.66875,
+                      "end": 25.80875
+                    },
+                    {
+                      "word": "minutes ",
+                      "start": 25.80875,
+                      "end": 26.05175
+                    },
+                    {
+                      "word": "about ",
+                      "start": 26.05175,
+                      "end": 26.27275
+                    },
+                    {
+                      "word": "that?",
+                      "start": 26.27275,
+                      "end": 26.73675
+                    }
+                  ],
+                  "metadata": {
+                    "response_id": 2
+                  }
+                },
+                {
+                  "role": "user",
+                  "content": "Sure. That's fine.",
+                  "words": [
+                    {
+                      "word": "Sure. ",
+                      "start": 28.621,
+                      "end": 28.941
+                    },
+                    {
+                      "word": "That's ",
+                      "start": 28.941,
+                      "end": 29.181
+                    },
+                    {
+                      "word": "fine.",
+                      "start": 29.181,
+                      "end": 29.261
+                    }
+                  ]
+                },
+                {
+                  "role": "agent",
+                  "content": "Excellent! So, our services are really designed to save you time and help your business grow, which is, um, perfect for SaaS entrepreneurs like yourself. We find that most of our clients really appreciate how we streamline the whole HighLevel experience. Would you like to connect with one of our sales team members in a quick virtual meeting? They can walk you through the costs, benefits, and uh, how to get started with our services. We could find a time that works best for your schedule.",
+                  "words": [
+                    {
+                      "word": "Excellent! ",
+                      "start": 30.581,
+                      "end": 31.266
+                    },
+                    {
+                      "word": "So, ",
+                      "start": 31.366,
+                      "end": 31.97
+                    },
+                    {
+                      "word": "our ",
+                      "start": 31.97,
+                      "end": 32.26
+                    },
+                    {
+                      "word": "services ",
+                      "start": 32.26,
+                      "end": 32.713
+                    },
+                    {
+                      "word": "are ",
+                      "start": 32.713,
+                      "end": 32.876
+                    },
+                    {
+                      "word": "really ",
+                      "start": 32.876,
+                      "end": 33.154
+                    },
+                    {
+                      "word": "designed ",
+                      "start": 33.154,
+                      "end": 33.526
+                    },
+                    {
+                      "word": "to ",
+                      "start": 33.526,
+                      "end": 33.619
+                    },
+                    {
+                      "word": "save ",
+                      "start": 33.619,
+                      "end": 33.851
+                    },
+                    {
+                      "word": "you ",
+                      "start": 33.851,
+                      "end": 33.978
+                    },
+                    {
+                      "word": "time ",
+                      "start": 33.978,
+                      "end": 34.338
+                    },
+                    {
+                      "word": "and ",
+                      "start": 34.338,
+                      "end": 34.454
+                    },
+                    {
+                      "word": "help ",
+                      "start": 34.454,
+                      "end": 34.652
+                    },
+                    {
+                      "word": "your ",
+                      "start": 34.652,
+                      "end": 34.791
+                    },
+                    {
+                      "word": "business ",
+                      "start": 34.791,
+                      "end": 35.174
+                    },
+                    {
+                      "word": "grow, ",
+                      "start": 35.174,
+                      "end": 35.523
+                    },
+                    {
+                      "word": "which ",
+                      "start": 35.523,
+                      "end": 35.766
+                    },
+                    {
+                      "word": "is, ",
+                      "start": 35.766,
+                      "end": 36.01
+                    },
+                    {
+                      "word": "um, ",
+                      "start": 36.01,
+                      "end": 36.475
+                    },
+                    {
+                      "word": "perfect ",
+                      "start": 36.475,
+                      "end": 36.881
+                    },
+                    {
+                      "word": "for ",
+                      "start": 36.881,
+                      "end": 37.043
+                    },
+                    {
+                      "word": "SaaS ",
+                      "start": 37.043,
+                      "end": 37.334
+                    },
+                    {
+                      "word": "entrepreneurs ",
+                      "start": 37.334,
+                      "end": 37.972
+                    },
+                    {
+                      "word": "like ",
+                      "start": 37.972,
+                      "end": 38.135
+                    },
+                    {
+                      "word": "yourself. ",
+                      "start": 38.135,
+                      "end": 38.913
+                    },
+                    {
+                      "word": "We ",
+                      "start": 38.92470825195313,
+                      "end": 39.133708251953124
+                    },
+                    {
+                      "word": "find ",
+                      "start": 39.133708251953124,
+                      "end": 39.318708251953126
+                    },
+                    {
+                      "word": "that ",
+                      "start": 39.318708251953126,
+                      "end": 39.46970825195312
+                    },
+                    {
+                      "word": "most ",
+                      "start": 39.46970825195312,
+                      "end": 39.736708251953125
+                    },
+                    {
+                      "word": "of ",
+                      "start": 39.736708251953125,
+                      "end": 39.818708251953126
+                    },
+                    {
+                      "word": "our ",
+                      "start": 39.818708251953126,
+                      "end": 39.95770825195312
+                    },
+                    {
+                      "word": "clients ",
+                      "start": 39.95770825195312,
+                      "end": 40.328708251953124
+                    },
+                    {
+                      "word": "really ",
+                      "start": 40.328708251953124,
+                      "end": 40.61970825195313
+                    },
+                    {
+                      "word": "appreciate ",
+                      "start": 40.61970825195313,
+                      "end": 41.257708251953126
+                    },
+                    {
+                      "word": "how ",
+                      "start": 41.257708251953126,
+                      "end": 41.431708251953125
+                    },
+                    {
+                      "word": "we ",
+                      "start": 41.431708251953125,
+                      "end": 41.559708251953126
+                    },
+                    {
+                      "word": "streamline ",
+                      "start": 41.559708251953126,
+                      "end": 42.14070825195312
+                    },
+                    {
+                      "word": "the ",
+                      "start": 42.14070825195312,
+                      "end": 42.24470825195313
+                    },
+                    {
+                      "word": "whole ",
+                      "start": 42.24470825195313,
+                      "end": 42.47670825195313
+                    },
+                    {
+                      "word": "HighLevel ",
+                      "start": 42.47670825195313,
+                      "end": 42.90670825195313
+                    },
+                    {
+                      "word": "experience. ",
+                      "start": 42.90670825195313,
+                      "end": 43.742708251953125
+                    },
+                    {
+                      "word": "Would ",
+                      "start": 43.76545825195313,
+                      "end": 44.02145825195313
+                    },
+                    {
+                      "word": "you ",
+                      "start": 44.02145825195313,
+                      "end": 44.13745825195313
+                    },
+                    {
+                      "word": "like ",
+                      "start": 44.13745825195313,
+                      "end": 44.33445825195312
+                    },
+                    {
+                      "word": "to ",
+                      "start": 44.33445825195312,
+                      "end": 44.45045825195312
+                    },
+                    {
+                      "word": "connect ",
+                      "start": 44.45045825195312,
+                      "end": 44.833458251953125
+                    },
+                    {
+                      "word": "with ",
+                      "start": 44.833458251953125,
+                      "end": 45.031458251953126
+                    },
+                    {
+                      "word": "one ",
+                      "start": 45.031458251953126,
+                      "end": 45.18245825195312
+                    },
+                    {
+                      "word": "of ",
+                      "start": 45.18245825195312,
+                      "end": 45.275458251953125
+                    },
+                    {
+                      "word": "our ",
+                      "start": 45.275458251953125,
+                      "end": 45.437458251953124
+                    },
+                    {
+                      "word": "sales ",
+                      "start": 45.437458251953124,
+                      "end": 45.76245825195313
+                    },
+                    {
+                      "word": "team ",
+                      "start": 45.76245825195313,
+                      "end": 45.99445825195313
+                    },
+                    {
+                      "word": "members ",
+                      "start": 45.99445825195313,
+                      "end": 46.354458251953126
+                    },
+                    {
+                      "word": "in ",
+                      "start": 46.354458251953126,
+                      "end": 46.45945825195312
+                    },
+                    {
+                      "word": "a ",
+                      "start": 46.45945825195312,
+                      "end": 46.55245825195313
+                    },
+                    {
+                      "word": "quick ",
+                      "start": 46.55245825195313,
+                      "end": 46.85345825195313
+                    },
+                    {
+                      "word": "virtual ",
+                      "start": 46.85345825195313,
+                      "end": 47.306458251953124
+                    },
+                    {
+                      "word": "meeting? ",
+                      "start": 47.306458251953124,
+                      "end": 47.82945825195313
+                    },
+                    {
+                      "word": "They ",
+                      "start": 47.87516674804687,
+                      "end": 48.038166748046876
+                    },
+                    {
+                      "word": "can ",
+                      "start": 48.038166748046876,
+                      "end": 48.224166748046876
+                    },
+                    {
+                      "word": "walk ",
+                      "start": 48.224166748046876,
+                      "end": 48.502166748046875
+                    },
+                    {
+                      "word": "you ",
+                      "start": 48.502166748046875,
+                      "end": 48.642166748046876
+                    },
+                    {
+                      "word": "through ",
+                      "start": 48.642166748046876,
+                      "end": 48.95516674804688
+                    },
+                    {
+                      "word": "the ",
+                      "start": 48.95516674804688,
+                      "end": 49.08316674804688
+                    },
+                    {
+                      "word": "costs, ",
+                      "start": 49.08316674804688,
+                      "end": 49.52416674804687
+                    },
+                    {
+                      "word": "benefits, ",
+                      "start": 49.52416674804687,
+                      "end": 50.081166748046876
+                    },
+                    {
+                      "word": "and ",
+                      "start": 50.081166748046876,
+                      "end": 50.31416674804687
+                    },
+                    {
+                      "word": "uh, ",
+                      "start": 50.31416674804687,
+                      "end": 50.731166748046874
+                    },
+                    {
+                      "word": "how ",
+                      "start": 50.731166748046874,
+                      "end": 50.95216674804688
+                    },
+                    {
+                      "word": "to ",
+                      "start": 50.95216674804688,
+                      "end": 51.045166748046874
+                    },
+                    {
+                      "word": "get ",
+                      "start": 51.045166748046874,
+                      "end": 51.219166748046874
+                    },
+                    {
+                      "word": "started ",
+                      "start": 51.219166748046874,
+                      "end": 51.56716674804687
+                    },
+                    {
+                      "word": "with ",
+                      "start": 51.56716674804687,
+                      "end": 51.718166748046876
+                    },
+                    {
+                      "word": "our ",
+                      "start": 51.718166748046876,
+                      "end": 51.86916674804687
+                    },
+                    {
+                      "word": "services. ",
+                      "start": 51.86916674804687,
+                      "end": 52.798166748046874
+                    },
+                    {
+                      "word": "We ",
+                      "start": 52.84425,
+                      "end": 52.96125
+                    },
+                    {
+                      "word": "could ",
+                      "start": 52.96125,
+                      "end": 53.17025
+                    },
+                    {
+                      "word": "find ",
+                      "start": 53.17025,
+                      "end": 53.44825
+                    },
+                    {
+                      "word": "a ",
+                      "start": 53.44825,
+                      "end": 53.54125
+                    },
+                    {
+                      "word": "time ",
+                      "start": 53.54125,
+                      "end": 53.85525
+                    },
+                    {
+                      "word": "that ",
+                      "start": 53.85525,
+                      "end": 54.04025
+                    },
+                    {
+                      "word": "works ",
+                      "start": 54.04025,
+                      "end": 54.36525
+                    },
+                    {
+                      "word": "best ",
+                      "start": 54.36525,
+                      "end": 54.71425
+                    },
+                    {
+                      "word": "for ",
+                      "start": 54.71425,
+                      "end": 54.87625
+                    },
+                    {
+                      "word": "your ",
+                      "start": 54.87625,
+                      "end": 55.05025
+                    },
+                    {
+                      "word": "schedule.",
+                      "start": 55.05025,
+                      "end": 55.77025
+                    }
+                  ],
+                  "metadata": {
+                    "response_id": 3
+                  }
+                },
+                {
+                  "role": "user",
+                  "content": "Sure. That's fine.",
+                  "words": [
+                    {
+                      "word": "Sure. ",
+                      "start": 58.090998000000006,
+                      "end": 58.410998
+                    },
+                    {
+                      "word": "That's ",
+                      "start": 58.410998,
+                      "end": 58.651
+                    },
+                    {
+                      "word": "fine.",
+                      "start": 58.651,
+                      "end": 58.730997
+                    }
+                  ]
+                },
+                {
+                  "role": "agent",
+                  "content": "Let me see what appointment slots are available.",
+                  "words": [
+                    {
+                      "word": "Let ",
+                      "start": 59.576,
+                      "end": 59.738
+                    },
+                    {
+                      "word": "me ",
+                      "start": 59.738,
+                      "end": 59.843
+                    },
+                    {
+                      "word": "see ",
+                      "start": 59.843,
+                      "end": 59.994
+                    },
+                    {
+                      "word": "what ",
+                      "start": 59.994,
+                      "end": 60.156
+                    },
+                    {
+                      "word": "appointment ",
+                      "start": 60.156,
+                      "end": 60.574
+                    },
+                    {
+                      "word": "slots ",
+                      "start": 60.574,
+                      "end": 60.876
+                    },
+                    {
+                      "word": "are ",
+                      "start": 60.876,
+                      "end": 61.004
+                    },
+                    {
+                      "word": "available.",
+                      "start": 61.004,
+                      "end": 61.747
+                    }
+                  ],
+                  "metadata": {
+                    "response_id": 4
+                  }
+                }
+              ],
+              "transcript_with_tool_calls": [
+                {
+                  "role": "agent",
+                  "content": "Hi, this is Tiffany, the AI Assistant for Matt Deseeno at H-L Pro Tools. Is this Mario?",
+                  "words": [
+                    {
+                      "word": "Hi, ",
+                      "start": 2.554,
+                      "end": 2.763
+                    },
+                    {
+                      "word": "this ",
+                      "start": 2.763,
+                      "end": 2.949
+                    },
+                    {
+                      "word": "is ",
+                      "start": 2.949,
+                      "end": 3.077
+                    },
+                    {
+                      "word": "Tiffany, ",
+                      "start": 3.077,
+                      "end": 3.471
+                    },
+                    {
+                      "word": "the ",
+                      "start": 3.471,
+                      "end": 3.587
+                    },
+                    {
+                      "word": "AI ",
+                      "start": 3.587,
+                      "end": 3.901
+                    },
+                    {
+                      "word": "Assistant ",
+                      "start": 3.901,
+                      "end": 4.319
+                    },
+                    {
+                      "word": "for ",
+                      "start": 4.319,
+                      "end": 4.447
+                    },
+                    {
+                      "word": "Matt ",
+                      "start": 4.447,
+                      "end": 4.644
+                    },
+                    {
+                      "word": "Deseeno ",
+                      "start": 4.644,
+                      "end": 5.166
+                    },
+                    {
+                      "word": "at ",
+                      "start": 5.166,
+                      "end": 5.329
+                    },
+                    {
+                      "word": "H-L ",
+                      "start": 5.329,
+                      "end": 5.677
+                    },
+                    {
+                      "word": "Pro ",
+                      "start": 5.677,
+                      "end": 5.886
+                    },
+                    {
+                      "word": "Tools. ",
+                      "start": 5.886,
+                      "end": 6.525
+                    },
+                    {
+                      "word": "Is ",
+                      "start": 6.570708251953125,
+                      "end": 6.687708251953125
+                    },
+                    {
+                      "word": "this ",
+                      "start": 6.687708251953125,
+                      "end": 6.884708251953125
+                    },
+                    {
+                      "word": "Mario?",
+                      "start": 6.884708251953125,
+                      "end": 7.406708251953125
+                    }
+                  ],
+                  "metadata": {
+                    "response_id": 0
+                  }
+                },
+                {
+                  "role": "user",
+                  "content": "Yeah. This is Mario.",
+                  "words": [
+                    {
+                      "word": "Yeah. ",
+                      "start": 9.401,
+                      "end": 9.721
+                    },
+                    {
+                      "word": "This ",
+                      "start": 9.721,
+                      "end": 9.880999999999998
+                    },
+                    {
+                      "word": "is ",
+                      "start": 9.880999999999998,
+                      "end": 9.960999999999999
+                    },
+                    {
+                      "word": "Mario.",
+                      "start": 9.960999999999999,
+                      "end": 10.201001
+                    }
+                  ]
+                },
+                {
+                  "role": "agent",
+                  "content": "Great! Nice to speak with you, Mario. I see you recently inquired about our support and onboarding services for HighLevel. I'm calling to see if we can get an appointment booked with our team to discuss how we can help you get the most out of the platform. Is now a good time to talk for a few minutes about that?",
+                  "words": [
+                    {
+                      "word": "Great! ",
+                      "start": 12.236,
+                      "end": 12.851
+                    },
+                    {
+                      "word": "Nice ",
+                      "start": 12.8975,
+                      "end": 13.1305
+                    },
+                    {
+                      "word": "to ",
+                      "start": 13.1305,
+                      "end": 13.2235
+                    },
+                    {
+                      "word": "speak ",
+                      "start": 13.2235,
+                      "end": 13.4665
+                    },
+                    {
+                      "word": "with ",
+                      "start": 13.4665,
+                      "end": 13.6295
+                    },
+                    {
+                      "word": "you, ",
+                      "start": 13.6295,
+                      "end": 13.7685
+                    },
+                    {
+                      "word": "Mario.",
+                      "start": 13.7685,
+                      "end": 14.4765
+                    },
+                    {
+                      "word": " I ",
+                      "start": 14.522916748046875,
+                      "end": 14.627916748046875
+                    },
+                    {
+                      "word": "see ",
+                      "start": 14.627916748046875,
+                      "end": 14.789916748046876
+                    },
+                    {
+                      "word": "you ",
+                      "start": 14.789916748046876,
+                      "end": 14.929916748046875
+                    },
+                    {
+                      "word": "recently ",
+                      "start": 14.929916748046875,
+                      "end": 15.277916748046875
+                    },
+                    {
+                      "word": "inquired ",
+                      "start": 15.277916748046875,
+                      "end": 15.672916748046875
+                    },
+                    {
+                      "word": "about ",
+                      "start": 15.672916748046875,
+                      "end": 15.834916748046876
+                    },
+                    {
+                      "word": "our ",
+                      "start": 15.834916748046876,
+                      "end": 15.962916748046876
+                    },
+                    {
+                      "word": "support ",
+                      "start": 15.962916748046876,
+                      "end": 16.368916748046875
+                    },
+                    {
+                      "word": "and ",
+                      "start": 16.368916748046875,
+                      "end": 16.485916748046876
+                    },
+                    {
+                      "word": "onboarding ",
+                      "start": 16.485916748046876,
+                      "end": 16.937916748046874
+                    },
+                    {
+                      "word": "services ",
+                      "start": 16.937916748046874,
+                      "end": 17.483916748046877
+                    },
+                    {
+                      "word": "for ",
+                      "start": 17.483916748046877,
+                      "end": 17.646916748046873
+                    },
+                    {
+                      "word": "HighLevel. ",
+                      "start": 17.646916748046873,
+                      "end": 18.377916748046875
+                    },
+                    {
+                      "word": "I'm ",
+                      "start": 18.423875,
+                      "end": 18.667875
+                    },
+                    {
+                      "word": "calling ",
+                      "start": 18.667875,
+                      "end": 19.027875
+                    },
+                    {
+                      "word": "to ",
+                      "start": 19.027875,
+                      "end": 19.120875
+                    },
+                    {
+                      "word": "see ",
+                      "start": 19.120875,
+                      "end": 19.283875
+                    },
+                    {
+                      "word": "if ",
+                      "start": 19.283875,
+                      "end": 19.399875
+                    },
+                    {
+                      "word": "we ",
+                      "start": 19.399875,
+                      "end": 19.503875
+                    },
+                    {
+                      "word": "can ",
+                      "start": 19.503875,
+                      "end": 19.666875
+                    },
+                    {
+                      "word": "get ",
+                      "start": 19.666875,
+                      "end": 19.828875
+                    },
+                    {
+                      "word": "an ",
+                      "start": 19.828875,
+                      "end": 19.921875
+                    },
+                    {
+                      "word": "appointment ",
+                      "start": 19.921875,
+                      "end": 20.362875
+                    },
+                    {
+                      "word": "booked ",
+                      "start": 20.362875,
+                      "end": 20.595875
+                    },
+                    {
+                      "word": "with ",
+                      "start": 20.595875,
+                      "end": 20.745875
+                    },
+                    {
+                      "word": "our ",
+                      "start": 20.745875,
+                      "end": 20.896875
+                    },
+                    {
+                      "word": "team ",
+                      "start": 20.896875,
+                      "end": 21.221875
+                    },
+                    {
+                      "word": "to ",
+                      "start": 21.221875,
+                      "end": 21.396875
+                    },
+                    {
+                      "word": "discuss ",
+                      "start": 21.396875,
+                      "end": 21.802875
+                    },
+                    {
+                      "word": "how ",
+                      "start": 21.802875,
+                      "end": 21.953875
+                    },
+                    {
+                      "word": "we ",
+                      "start": 21.953875,
+                      "end": 22.069875
+                    },
+                    {
+                      "word": "can ",
+                      "start": 22.069875,
+                      "end": 22.232875
+                    },
+                    {
+                      "word": "help ",
+                      "start": 22.232875,
+                      "end": 22.429875
+                    },
+                    {
+                      "word": "you ",
+                      "start": 22.429875,
+                      "end": 22.557875
+                    },
+                    {
+                      "word": "get ",
+                      "start": 22.557875,
+                      "end": 22.731875
+                    },
+                    {
+                      "word": "the ",
+                      "start": 22.731875,
+                      "end": 22.847875
+                    },
+                    {
+                      "word": "most ",
+                      "start": 22.847875,
+                      "end": 23.137875
+                    },
+                    {
+                      "word": "out ",
+                      "start": 23.137875,
+                      "end": 23.276875
+                    },
+                    {
+                      "word": "of ",
+                      "start": 23.276875,
+                      "end": 23.381875
+                    },
+                    {
+                      "word": "the ",
+                      "start": 23.381875,
+                      "end": 23.485875
+                    },
+                    {
+                      "word": "platform. ",
+                      "start": 23.485875,
+                      "end": 24.275875
+                    },
+                    {
+                      "word": "Is ",
+                      "start": 24.32175,
+                      "end": 24.57775
+                    },
+                    {
+                      "word": "now ",
+                      "start": 24.57775,
+                      "end": 24.72875
+                    },
+                    {
+                      "word": "a ",
+                      "start": 24.72875,
+                      "end": 24.80975
+                    },
+                    {
+                      "word": "good ",
+                      "start": 24.80975,
+                      "end": 24.94875
+                    },
+                    {
+                      "word": "time ",
+                      "start": 24.94875,
+                      "end": 25.12375
+                    },
+                    {
+                      "word": "to ",
+                      "start": 25.12375,
+                      "end": 25.21575
+                    },
+                    {
+                      "word": "talk ",
+                      "start": 25.21575,
+                      "end": 25.45975
+                    },
+                    {
+                      "word": "for ",
+                      "start": 25.45975,
+                      "end": 25.58775
+                    },
+                    {
+                      "word": "a ",
+                      "start": 25.58775,
+                      "end": 25.66875
+                    },
+                    {
+                      "word": "few ",
+                      "start": 25.66875,
+                      "end": 25.80875
+                    },
+                    {
+                      "word": "minutes ",
+                      "start": 25.80875,
+                      "end": 26.05175
+                    },
+                    {
+                      "word": "about ",
+                      "start": 26.05175,
+                      "end": 26.27275
+                    },
+                    {
+                      "word": "that?",
+                      "start": 26.27275,
+                      "end": 26.73675
+                    }
+                  ],
+                  "metadata": {
+                    "response_id": 2
+                  }
+                },
+                {
+                  "role": "user",
+                  "content": "Sure. That's fine.",
+                  "words": [
+                    {
+                      "word": "Sure. ",
+                      "start": 28.621,
+                      "end": 28.941
+                    },
+                    {
+                      "word": "That's ",
+                      "start": 28.941,
+                      "end": 29.181
+                    },
+                    {
+                      "word": "fine.",
+                      "start": 29.181,
+                      "end": 29.261
+                    }
+                  ]
+                },
+                {
+                  "role": "agent",
+                  "content": "Excellent! So, our services are really designed to save you time and help your business grow, which is, um, perfect for SaaS entrepreneurs like yourself. We find that most of our clients really appreciate how we streamline the whole HighLevel experience. Would you like to connect with one of our sales team members in a quick virtual meeting? They can walk you through the costs, benefits, and uh, how to get started with our services. We could find a time that works best for your schedule.",
+                  "words": [
+                    {
+                      "word": "Excellent! ",
+                      "start": 30.581,
+                      "end": 31.266
+                    },
+                    {
+                      "word": "So, ",
+                      "start": 31.366,
+                      "end": 31.97
+                    },
+                    {
+                      "word": "our ",
+                      "start": 31.97,
+                      "end": 32.26
+                    },
+                    {
+                      "word": "services ",
+                      "start": 32.26,
+                      "end": 32.713
+                    },
+                    {
+                      "word": "are ",
+                      "start": 32.713,
+                      "end": 32.876
+                    },
+                    {
+                      "word": "really ",
+                      "start": 32.876,
+                      "end": 33.154
+                    },
+                    {
+                      "word": "designed ",
+                      "start": 33.154,
+                      "end": 33.526
+                    },
+                    {
+                      "word": "to ",
+                      "start": 33.526,
+                      "end": 33.619
+                    },
+                    {
+                      "word": "save ",
+                      "start": 33.619,
+                      "end": 33.851
+                    },
+                    {
+                      "word": "you ",
+                      "start": 33.851,
+                      "end": 33.978
+                    },
+                    {
+                      "word": "time ",
+                      "start": 33.978,
+                      "end": 34.338
+                    },
+                    {
+                      "word": "and ",
+                      "start": 34.338,
+                      "end": 34.454
+                    },
+                    {
+                      "word": "help ",
+                      "start": 34.454,
+                      "end": 34.652
+                    },
+                    {
+                      "word": "your ",
+                      "start": 34.652,
+                      "end": 34.791
+                    },
+                    {
+                      "word": "business ",
+                      "start": 34.791,
+                      "end": 35.174
+                    },
+                    {
+                      "word": "grow, ",
+                      "start": 35.174,
+                      "end": 35.523
+                    },
+                    {
+                      "word": "which ",
+                      "start": 35.523,
+                      "end": 35.766
+                    },
+                    {
+                      "word": "is, ",
+                      "start": 35.766,
+                      "end": 36.01
+                    },
+                    {
+                      "word": "um, ",
+                      "start": 36.01,
+                      "end": 36.475
+                    },
+                    {
+                      "word": "perfect ",
+                      "start": 36.475,
+                      "end": 36.881
+                    },
+                    {
+                      "word": "for ",
+                      "start": 36.881,
+                      "end": 37.043
+                    },
+                    {
+                      "word": "SaaS ",
+                      "start": 37.043,
+                      "end": 37.334
+                    },
+                    {
+                      "word": "entrepreneurs ",
+                      "start": 37.334,
+                      "end": 37.972
+                    },
+                    {
+                      "word": "like ",
+                      "start": 37.972,
+                      "end": 38.135
+                    },
+                    {
+                      "word": "yourself. ",
+                      "start": 38.135,
+                      "end": 38.913
+                    },
+                    {
+                      "word": "We ",
+                      "start": 38.92470825195313,
+                      "end": 39.133708251953124
+                    },
+                    {
+                      "word": "find ",
+                      "start": 39.133708251953124,
+                      "end": 39.318708251953126
+                    },
+                    {
+                      "word": "that ",
+                      "start": 39.318708251953126,
+                      "end": 39.46970825195312
+                    },
+                    {
+                      "word": "most ",
+                      "start": 39.46970825195312,
+                      "end": 39.736708251953125
+                    },
+                    {
+                      "word": "of ",
+                      "start": 39.736708251953125,
+                      "end": 39.818708251953126
+                    },
+                    {
+                      "word": "our ",
+                      "start": 39.818708251953126,
+                      "end": 39.95770825195312
+                    },
+                    {
+                      "word": "clients ",
+                      "start": 39.95770825195312,
+                      "end": 40.328708251953124
+                    },
+                    {
+                      "word": "really ",
+                      "start": 40.328708251953124,
+                      "end": 40.61970825195313
+                    },
+                    {
+                      "word": "appreciate ",
+                      "start": 40.61970825195313,
+                      "end": 41.257708251953126
+                    },
+                    {
+                      "word": "how ",
+                      "start": 41.257708251953126,
+                      "end": 41.431708251953125
+                    },
+                    {
+                      "word": "we ",
+                      "start": 41.431708251953125,
+                      "end": 41.559708251953126
+                    },
+                    {
+                      "word": "streamline ",
+                      "start": 41.559708251953126,
+                      "end": 42.14070825195312
+                    },
+                    {
+                      "word": "the ",
+                      "start": 42.14070825195312,
+                      "end": 42.24470825195313
+                    },
+                    {
+                      "word": "whole ",
+                      "start": 42.24470825195313,
+                      "end": 42.47670825195313
+                    },
+                    {
+                      "word": "HighLevel ",
+                      "start": 42.47670825195313,
+                      "end": 42.90670825195313
+                    },
+                    {
+                      "word": "experience. ",
+                      "start": 42.90670825195313,
+                      "end": 43.742708251953125
+                    },
+                    {
+                      "word": "Would ",
+                      "start": 43.76545825195313,
+                      "end": 44.02145825195313
+                    },
+                    {
+                      "word": "you ",
+                      "start": 44.02145825195313,
+                      "end": 44.13745825195313
+                    },
+                    {
+                      "word": "like ",
+                      "start": 44.13745825195313,
+                      "end": 44.33445825195312
+                    },
+                    {
+                      "word": "to ",
+                      "start": 44.33445825195312,
+                      "end": 44.45045825195312
+                    },
+                    {
+                      "word": "connect ",
+                      "start": 44.45045825195312,
+                      "end": 44.833458251953125
+                    },
+                    {
+                      "word": "with ",
+                      "start": 44.833458251953125,
+                      "end": 45.031458251953126
+                    },
+                    {
+                      "word": "one ",
+                      "start": 45.031458251953126,
+                      "end": 45.18245825195312
+                    },
+                    {
+                      "word": "of ",
+                      "start": 45.18245825195312,
+                      "end": 45.275458251953125
+                    },
+                    {
+                      "word": "our ",
+                      "start": 45.275458251953125,
+                      "end": 45.437458251953124
+                    },
+                    {
+                      "word": "sales ",
+                      "start": 45.437458251953124,
+                      "end": 45.76245825195313
+                    },
+                    {
+                      "word": "team ",
+                      "start": 45.76245825195313,
+                      "end": 45.99445825195313
+                    },
+                    {
+                      "word": "members ",
+                      "start": 45.99445825195313,
+                      "end": 46.354458251953126
+                    },
+                    {
+                      "word": "in ",
+                      "start": 46.354458251953126,
+                      "end": 46.45945825195312
+                    },
+                    {
+                      "word": "a ",
+                      "start": 46.45945825195312,
+                      "end": 46.55245825195313
+                    },
+                    {
+                      "word": "quick ",
+                      "start": 46.55245825195313,
+                      "end": 46.85345825195313
+                    },
+                    {
+                      "word": "virtual ",
+                      "start": 46.85345825195313,
+                      "end": 47.306458251953124
+                    },
+                    {
+                      "word": "meeting? ",
+                      "start": 47.306458251953124,
+                      "end": 47.82945825195313
+                    },
+                    {
+                      "word": "They ",
+                      "start": 47.87516674804687,
+                      "end": 48.038166748046876
+                    },
+                    {
+                      "word": "can ",
+                      "start": 48.038166748046876,
+                      "end": 48.224166748046876
+                    },
+                    {
+                      "word": "walk ",
+                      "start": 48.224166748046876,
+                      "end": 48.502166748046875
+                    },
+                    {
+                      "word": "you ",
+                      "start": 48.502166748046875,
+                      "end": 48.642166748046876
+                    },
+                    {
+                      "word": "through ",
+                      "start": 48.642166748046876,
+                      "end": 48.95516674804688
+                    },
+                    {
+                      "word": "the ",
+                      "start": 48.95516674804688,
+                      "end": 49.08316674804688
+                    },
+                    {
+                      "word": "costs, ",
+                      "start": 49.08316674804688,
+                      "end": 49.52416674804687
+                    },
+                    {
+                      "word": "benefits, ",
+                      "start": 49.52416674804687,
+                      "end": 50.081166748046876
+                    },
+                    {
+                      "word": "and ",
+                      "start": 50.081166748046876,
+                      "end": 50.31416674804687
+                    },
+                    {
+                      "word": "uh, ",
+                      "start": 50.31416674804687,
+                      "end": 50.731166748046874
+                    },
+                    {
+                      "word": "how ",
+                      "start": 50.731166748046874,
+                      "end": 50.95216674804688
+                    },
+                    {
+                      "word": "to ",
+                      "start": 50.95216674804688,
+                      "end": 51.045166748046874
+                    },
+                    {
+                      "word": "get ",
+                      "start": 51.045166748046874,
+                      "end": 51.219166748046874
+                    },
+                    {
+                      "word": "started ",
+                      "start": 51.219166748046874,
+                      "end": 51.56716674804687
+                    },
+                    {
+                      "word": "with ",
+                      "start": 51.56716674804687,
+                      "end": 51.718166748046876
+                    },
+                    {
+                      "word": "our ",
+                      "start": 51.718166748046876,
+                      "end": 51.86916674804687
+                    },
+                    {
+                      "word": "services. ",
+                      "start": 51.86916674804687,
+                      "end": 52.798166748046874
+                    },
+                    {
+                      "word": "We ",
+                      "start": 52.84425,
+                      "end": 52.96125
+                    },
+                    {
+                      "word": "could ",
+                      "start": 52.96125,
+                      "end": 53.17025
+                    },
+                    {
+                      "word": "find ",
+                      "start": 53.17025,
+                      "end": 53.44825
+                    },
+                    {
+                      "word": "a ",
+                      "start": 53.44825,
+                      "end": 53.54125
+                    },
+                    {
+                      "word": "time ",
+                      "start": 53.54125,
+                      "end": 53.85525
+                    },
+                    {
+                      "word": "that ",
+                      "start": 53.85525,
+                      "end": 54.04025
+                    },
+                    {
+                      "word": "works ",
+                      "start": 54.04025,
+                      "end": 54.36525
+                    },
+                    {
+                      "word": "best ",
+                      "start": 54.36525,
+                      "end": 54.71425
+                    },
+                    {
+                      "word": "for ",
+                      "start": 54.71425,
+                      "end": 54.87625
+                    },
+                    {
+                      "word": "your ",
+                      "start": 54.87625,
+                      "end": 55.05025
+                    },
+                    {
+                      "word": "schedule.",
+                      "start": 55.05025,
+                      "end": 55.77025
+                    }
+                  ],
+                  "metadata": {
+                    "response_id": 3
+                  }
+                },
+                {
+                  "role": "user",
+                  "content": "Sure. That's fine.",
+                  "words": [
+                    {
+                      "word": "Sure. ",
+                      "start": 58.090998000000006,
+                      "end": 58.410998
+                    },
+                    {
+                      "word": "That's ",
+                      "start": 58.410998,
+                      "end": 58.651
+                    },
+                    {
+                      "word": "fine.",
+                      "start": 58.651,
+                      "end": 58.730997
+                    }
+                  ]
+                },
+                {
+                  "role": "agent",
+                  "content": "Let me see what appointment slots are available.",
+                  "words": [
+                    {
+                      "word": "Let ",
+                      "start": 59.576,
+                      "end": 59.738
+                    },
+                    {
+                      "word": "me ",
+                      "start": 59.738,
+                      "end": 59.843
+                    },
+                    {
+                      "word": "see ",
+                      "start": 59.843,
+                      "end": 59.994
+                    },
+                    {
+                      "word": "what ",
+                      "start": 59.994,
+                      "end": 60.156
+                    },
+                    {
+                      "word": "appointment ",
+                      "start": 60.156,
+                      "end": 60.574
+                    },
+                    {
+                      "word": "slots ",
+                      "start": 60.574,
+                      "end": 60.876
+                    },
+                    {
+                      "word": "are ",
+                      "start": 60.876,
+                      "end": 61.004
+                    },
+                    {
+                      "word": "available.",
+                      "start": 61.004,
+                      "end": 61.747
+                    }
+                  ],
+                  "metadata": {
+                    "response_id": 4
+                  }
+                },
+                {
+                  "role": "tool_call_invocation",
+                  "tool_call_id": "tool_call_4e0198",
+                  "name": "check_highlevel_calendar",
+                  "arguments": "{}"
+                }
+              ],
+              "latency": {},
+              "call_cost": {
+                "total_duration_unit_price": 0,
+                "product_costs": [],
+                "combined_cost": 0,
+                "total_duration_seconds": 0
+              },
+              "opt_out_sensitive_data_storage": false,
+              "from_number": "+18052615933",
+              "to_number": "+13016436381",
+              "direction": "outbound"
+            },
+            "name": "check_highlevel_calendar",
+            "args": {}
+          },
+          "webhookUrl": "https://api.olliebot.ai/webhook-test/34669956-dc28-4c79-b0f2-24eae0fac5f3",
+          "executionMode": "test"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Set Initial Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Phone Number": {
+      "main": [
+        []
+      ]
+    },
+    "Search Contact": {
+      "main": [
+        [
+          {
+            "node": "Get Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Calendar": {
+      "main": [
+        [
+          {
+            "node": "Set Calendar Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Initial Variables": {
+      "main": [
+        [
+          {
+            "node": "Search Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine if US/Canada": {
+      "main": [
+        [
+          {
+            "node": "Set Area Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Area Code": {
+      "main": [
+        [
+          {
+            "node": "Lookup IANA Timezone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine DST Active or Not": {
+      "main": [
+        [
+          {
+            "node": "Perform Date Transformation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Calendar Variables": {
+      "main": [
+        [
+          {
+            "node": "Determine if US/Canada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perform Date Transformation": {
+      "main": [
+        [
+          {
+            "node": "Get Free Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Try and Book Appointment": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Respond with Booked",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond with Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Free Slots": {
+      "main": [
+        [
+          {
+            "node": "Determine Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine Slots": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identify Date and Time from Input": {
+      "main": [
+        []
+      ]
+    },
+    "Lookup IANA Timezone": {
+      "main": [
+        [
+          {
+            "node": "Determine DST Active or Not",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Respond with Free Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "dGCHji7D72kZfqtl"
+  },
+  "versionId": "a73a91d1-84fe-453e-8cc8-5537a19dd749",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "798c0194ce0922811afc5daab8b80335b67638a2ac68f92ff07901228ffebf8b"
+  },
+  "id": "OTloqTeXXgXwqgoc",
+  "tags": []
+}
